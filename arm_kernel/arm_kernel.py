@@ -64,16 +64,16 @@ def execute_code(code):
         print("ERROR: %s" % e)
 
 class ArmKernel(Kernel):
-    implementation = 'Echo'
+    implementation = 'ARM Assembly'
     implementation_version = '1.0'
-    language = 'no-op'
+    language = 'ARM Assembly'
     language_version = '0.1'
     language_info = {
         'name': 'Any text',
         'mimetype': 'text/plain',
         'file_extension': '.txt',
     }
-    banner = "Echo kernel - as useful as a parrot"
+    banner = "ARM Assembly - code an ARM CPU"
 
     def do_execute(self, code, silent, store_history=True, user_expressions=None, allow_stdin=False):
         if not silent:
