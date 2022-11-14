@@ -75,10 +75,13 @@ class ArmKernel(Kernel):
     }
     banner = "ARM Assembly - code an ARM CPU"
 
+    counter = 0
+
     def do_execute(self, code, silent, store_history=True, user_expressions=None, allow_stdin=False):
         if not silent:
-            r0 = execute_code(code)
-            stream_content = {'name': 'stdout', 'text': "R0 %d" % r0}
+            # r0 = execute_code(code)
+            stream_content = {'name': 'stdout', 'text': "Counter %d" % self.counter}
+            self.counter += 1
             self.send_response(self.iopub_socket, 'stream', stream_content)
             
             return {'status': 'ok',
