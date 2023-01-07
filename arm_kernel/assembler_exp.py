@@ -30,6 +30,8 @@ testArray1: \n
 TEST_CODE2 = """
 LDR R0, =testArray1
 LDR R1, [R0]
+LDR R2, [R0, #8]
+MOV R0, R1
 """
 
 mem_asm = Ks(KS_ARCH_ARM, KS_MODE_THUMB)
@@ -61,5 +63,7 @@ emulator.hook_add(UC_HOOK_CODE, hook_code, begin=ADDRESS, end=ADDRESS+len(assemb
 # Have to add ADDRESS | 1 to run in Thumb mode?
 emulator.emu_start(ADDRESS | 1, ADDRESS + len(assembled_code))
 print(emulator.reg_read(UC_ARM_REG_R1))
+print(emulator.reg_read(UC_ARM_REG_R2))
+
 
 
