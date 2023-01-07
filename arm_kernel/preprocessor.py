@@ -61,6 +61,7 @@ class Preprocessor:
         # Parse YAML config.
         config = config.replace('\t', "  ")
         parsed = yaml.load(config, Loader=SafeLoader)
+        
         return parsed
 
 prep = Preprocessor()
