@@ -7,15 +7,26 @@ from capstone import *
 ADDRESS    = 0x10000
 MEMORY_ADDRESS = 0x20000
 
+
+class Memory:
+
+    mem_map = {
+        b'testArray1': MEMORY_ADDRESS
+    }
+
+mem = Memory()
+
 # callback for tracing instructions
 def hook_code(uc, address, size, user_data):
     print(">>> Tracing instruction at 0x%x, instruction size = 0x%x" %(address, size))
 
 def sym_resolver(symbol, value):
     print("symbol: %s" % symbol)
-    if symbol == b'testArray1':
+    print(mem.mem_map)
+    address = mem.mem_map.get(symbol)
+    if address is not None:
         print("found")
-        value[0] = MEMORY_ADDRESS
+        value[0] = address
         return True
     
     return False
