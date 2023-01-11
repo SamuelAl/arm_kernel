@@ -7,6 +7,7 @@
 
 # Sources:
 # - Memory class from bad-address/iasm
+# - https://docs.python.org/3/library/stdtypes.html
 
 from collections import namedtuple
 from enum import Enum
@@ -82,7 +83,7 @@ class MemoryItem:
         # Handle strings
         if type is ItemType.STRING:
             if isinstance(self.content, list):
-                raise Exception("Only strings must be single, not lists.")
+                raise ValueError("Only strings must be single, not lists.")
             return len(self.content)
             
         # Handle SPACE
@@ -179,7 +180,7 @@ class Memory:
         # Find memory list
         list = SortedList()
         if access is MemoryType.RO:
-           list = self._ro_pages
+            list = self._ro_pages
         else:
             list = self._rw_pages
         
@@ -217,13 +218,13 @@ class Memory:
         return self._items.get(label)
 
 
+# Small test
+# mu = Uc(UC_ARCH_ARM, UC_MODE_THUMB) 
+# mem = Memory(mu=mu)
 
-mu = Uc(UC_ARCH_ARM, UC_MODE_THUMB) 
-mem = Memory(mu=mu)
-
-item = MemoryItem("label",  ItemType.WORD, MemoryType.RO, size=2, content=[1,2])
-print(item)
-mem.add_item(item)
-print(mem.find_item(item.label))
-test = mem.read_item(item.label)
-print(test)
+# item = MemoryItem("label",  ItemType.WORD, MemoryType.RW, size=2, content=[1,2])
+# print(item)
+# mem.add_item(item)
+# print(mem.find_item(item.label))
+# test = mem.read_item(item.label)
+# print(test)
