@@ -8,6 +8,7 @@
 # Sources:
 # - Memory class from bad-address/iasm
 
+from collections import namedtuple
 from enum import Enum
 from sortedcontainers import SortedList
 from unicorn import *
@@ -18,6 +19,24 @@ ALIGNMENT = 4 * 1024
 def next_aligned(n: int, alignment: int = ALIGNMENT) -> int:
     return (n + alignment) & -(alignment-1)
 
+STACK_ADDR = 0x0
+STACK_SZ = 1024*1024
+
+# Default profile
+DEFAULT_BASE = 0x400000
+DEFAULT_CODEPAD_MEM_START = DEFAULT_BASE
+DEFAULT_CODEPAD_MEM_SZ = 500 * (1 << 10) #500kb
+DEFAULT_SUBROUTINE_MEM_START = next_aligned(DEFAULT_CODEPAD_MEM_START + DEFAULT_CODEPAD_MEM_SZ)
+DEFAULT_SUBROUTINE_MEM_SZ = 1 << 20 #1Mb
+DEFAULT_MAIN_MEM_START = next_aligned(DEFAULT_SUBROUTINE_MEM_START + DEFAULT_SUBROUTINE_MEM_SZ)
+DEFAULT_MAIN_MEM_SZ = 4 * (1 << 20) #4Mb
+DEFAULT_PAGE_SZ = 1 << 10 #1Kb
+
+DEFAULT_RW_MEM_START = DEFAULT_MAIN_MEM_START
+DEFAULT_RW_MEM_SZ = DEFAULT_PAGE_SZ
+DEFAULT_RO_MEM_START =  next_aligned(DEFAULT_RW_MEM_START + DEFAULT_RW_MEM_SZ)
+DEFAULT_RO_MEM_SZ = DEFAULT_PAGE_SZ
+
 class MemoryType(Enum):
     CODE = 1
     MAIN = 2
@@ -25,8 +44,6 @@ class MemoryType(Enum):
     RW = 4
     SUBROUTINE = 5 
     STACK = 6
-
-# Item: Tuple("label", type, access, size, content)
 
 class ItemType(Enum):
     BYTE = 1
@@ -36,23 +53,68 @@ class ItemType(Enum):
     STRING = 20
     SPACE = 0
 
-STACK_ADDR = 0x0
-STACK_SZ = 1024*1024
+ITEM_BYTE_SZ = {
+    ItemType.BYTE: 1,
+    ItemType.HWORD: 2,
+    ItemType.WORD: 4,
+    ItemType.INT: 4,
+    ItemType.STRING: 1,
+    ItemType.SPACE: 1
+}
 
-# Default profile
-DEFAULT_BASE = 0x400000
-DEFAULT_CODEPAD_MEM_START = DEFAULT_BASE
-DEFAULT_CODEPAD_MEM_SZ = 500 * (2 << 10) #500kb
-DEFAULT_SUBROUTINE_MEM_START = next_aligned(DEFAULT_CODEPAD_MEM_START + DEFAULT_CODEPAD_MEM_SZ)
-DEFAULT_SUBROUTINE_MEM_SZ = 2 << 20 #1Mb
-DEFAULT_MAIN_MEM_START = next_aligned(DEFAULT_SUBROUTINE_MEM_START + DEFAULT_SUBROUTINE_MEM_SZ)
-DEFAULT_MAIN_MEM_SZ = 4 * (2 << 20) #4Mb
-DEFAULT_PAGE_SZ = 2 << 10 #1Kb
+# Item: Tuple("label", type, access, size, content)
+class MemoryItem:
 
-DEFAULT_RW_MEM_START = DEFAULT_MAIN_MEM_START
-DEFAULT_RW_MEM_SZ = DEFAULT_PAGE_SZ
-DEFAULT_RO_MEM_START =  next_aligned(DEFAULT_RW_MEM_START + DEFAULT_RW_MEM_SZ)
-DEFAULT_RO_MEM_SZ = DEFAULT_PAGE_SZ
+    def __init__(self, label: str, type: ItemType, access: MemoryType, size: int = 1, content = None):
+        self.label = label
+        self.type = type
+        self.access = access
+        self.content = content
+        self.size = size
+        self.byte_size = self.calculate_bytes_count()
+
+    def _type_bytes(self, type: ItemType) -> int:
+        return ITEM_BYTE_SZ[type]
+
+    def calculate_bytes_count(self):
+        byte_count = self._type_bytes(self.type)
+
+        # Handle strings
+        if type is ItemType.STRING:
+            if isinstance(self.content, list):
+                raise Exception("Only strings must be single, not lists.")
+            return len(self.content)
+            
+        # Handle SPACE
+        elif type is ItemType.SPACE:
+            return self.size * self.byte_count
+
+        # Handle other types
+        if isinstance(self.content, list):
+            return max(self.size * byte_count, len(self.content) * byte_count)
+        else:
+            return byte_count
+
+    # ref: [https://www.geeksforgeeks.org/how-to-convert-int-to-bytes-in-python/]    
+    def to_bytes(self):
+        
+        # Handle everything but strings and SPACE for now
+        bytes_per_val = self._type_bytes(self.type)
+
+        # Handle space
+        if self.type is ItemType.SPACE:
+            return bytes([0] * bytes_per_val * self.size)
+
+        # Handle list
+        if isinstance(self.content, list):
+            byte_ls = []
+            for val in self.content:
+                words = val.to_bytes(bytes_per_val, 'little')
+                for byte in words:
+                    byte_ls.append(byte)
+            return bytes(byte_ls)
+        else:
+            return self.content.to_bytes(bytes_per_val, 'little')
 
 class MemoryPage:
 
@@ -66,13 +128,14 @@ class MemoryPage:
 
     def __repr__(self) -> str:
         return f"""
-        Memory Page @ {self.start}:
+        Memory Page @ 0x{self.start:x}:
         Type: {self.type},
-        Capacity: {self.capacity},
+        Capacity: {self.capacity} B,
         Size: {self.size},
-        Next Addrs: {self.next_address},
+        Next Addrs: 0x{self.next_address:x},
         Labels: {len(self.labels)}
         """
+
 
 class Memory:
     def __init__(self, mu: unicorn.Uc):
@@ -113,17 +176,27 @@ class Memory:
         for page in list:
             if page.capacity - page.size >= size:
                 return page
+        
+        #TODO: Create new page if no page found
+        raise Exception("No page found") # this will be substituted by the creation of a new page
 
-    def add_item(self, item):
+    def add_item(self, item: MemoryItem):
         #TODO: Validate item.
 
         # get page with space
-        pass
+        page = self._find_page(item.access, item.byte_size)
+
+        # Add content to memory
+        # get bytes
+        print(item.to_bytes())
+        self._mu.mem_write(page.next_address, item.to_bytes())
+
+
+    
         
 
 mu = Uc(UC_ARCH_ARM, UC_MODE_THUMB) 
 mem = Memory(mu=mu)
 
-print(mem._ro_pages)
-page = mem._find_page(MemoryType.RO, 100)
-print(page)
+item = MemoryItem("label",  ItemType.SPACE, MemoryType.RO, size=8, content=[1,2])
+page = mem.add_item(item)
