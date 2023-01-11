@@ -125,18 +125,28 @@ class MemoryPage:
         self.size = 0
         self.next_address = start
         self.labels = []
+        self.is_full = False
 
     def __repr__(self) -> str:
         return f"""
         Memory Page @ 0x{self.start:x}:
         Type: {self.type},
         Capacity: {self.capacity} B,
-        Size: {self.size},
+        Size: {self.size} B,
         Next Addrs: 0x{self.next_address:x},
+        Full: {self.is_full}
         Labels: {len(self.labels)}
         """
 
-
+    def add_item(self, mu: unicorn.Uc, item: MemoryItem):
+        mu.mem_write(self.next_address, item.to_bytes())
+        self.labels.append((item.label, self.next_address))
+        
+        self.next_address = next_aligned(self.next_address + item.byte_size, 4)
+        if self.next_address >= self.start + self.capacity:
+            self.is_full = True
+        self.size = min(self.capacity, self.next_address - self.start)
+        
 class Memory:
     def __init__(self, mu: unicorn.Uc):
         self._mu = mu
@@ -187,16 +197,33 @@ class Memory:
         page = self._find_page(item.access, item.byte_size)
 
         # Add content to memory
-        # get bytes
-        print(item.to_bytes())
-        self._mu.mem_write(page.next_address, item.to_bytes())
+        addrs = page.next_address
+        try:
+            page.add_item(self._mu, item)
+        except Exception as error:
+            print(error)
+        else:
+            self._items[item.label] = (addrs, item.byte_size)
 
-
+        print(page)
     
-        
+    def read_item(self, label: str) -> bytearray:
+        item = self._items[label]
+        print(item)
+        content = self._mu.mem_read(item[0], item[1])
+        return content
+
+    def find_item(self, label: str) -> tuple[int, int] | None:
+        return self._items.get(label)
+
+
 
 mu = Uc(UC_ARCH_ARM, UC_MODE_THUMB) 
 mem = Memory(mu=mu)
 
-item = MemoryItem("label",  ItemType.SPACE, MemoryType.RO, size=8, content=[1,2])
-page = mem.add_item(item)
+item = MemoryItem("label",  ItemType.WORD, MemoryType.RO, size=2, content=[1,2])
+print(item)
+mem.add_item(item)
+print(mem.find_item(item.label))
+test = mem.read_item(item.label)
+print(test)
