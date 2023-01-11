@@ -25,7 +25,16 @@ class MemoryType(Enum):
     RW = 4
     SUBROUTINE = 5 
     STACK = 6
-    
+
+# Item: Tuple("label", type, access, size, content)
+
+class ItemType(Enum):
+    BYTE = 1
+    HWORD = 2
+    WORD = 4
+    INT = 10
+    STRING = 20
+    SPACE = 0
 
 STACK_ADDR = 0x0
 STACK_SZ = 1024*1024
@@ -46,6 +55,7 @@ DEFAULT_RO_MEM_START =  next_aligned(DEFAULT_RW_MEM_START + DEFAULT_RW_MEM_SZ)
 DEFAULT_RO_MEM_SZ = DEFAULT_PAGE_SZ
 
 class MemoryPage:
+
     def __init__(self, type: MemoryType, start: int, capacity: int):
         self.type = type
         self.start = start
@@ -54,8 +64,15 @@ class MemoryPage:
         self.next_address = start
         self.labels = []
 
-# Item: Tuple("label", type, access, content)
-
+    def __repr__(self) -> str:
+        return f"""
+        Memory Page @ {self.start}:
+        Type: {self.type},
+        Capacity: {self.capacity},
+        Size: {self.size},
+        Next Addrs: {self.next_address},
+        Labels: {len(self.labels)}
+        """
 
 class Memory:
     def __init__(self, mu: unicorn.Uc):
@@ -72,8 +89,11 @@ class Memory:
         self._mu.mem_map(address=DEFAULT_SUBROUTINE_MEM_START, size=DEFAULT_SUBROUTINE_MEM_SZ, perms=UC_PROT_EXEC | UC_PROT_READ)
 
         # Setup pages map
-        self._mem_pages = SortedList(iterable=[
-            MemoryPage(MemoryType.RW, DEFAULT_RW_MEM_START, DEFAULT_RW_MEM_SZ),
+        self._rw_pages = SortedList(iterable=[
+            MemoryPage(MemoryType.RW, DEFAULT_RW_MEM_START, DEFAULT_RW_MEM_SZ)
+        ], key=lambda x: x.start)
+
+        self._ro_pages = SortedList(iterable=[
             MemoryPage(MemoryType.RO, DEFAULT_RO_MEM_START, DEFAULT_RO_MEM_SZ)
         ], key=lambda x: x.start)
 
@@ -82,9 +102,28 @@ class Memory:
 
         self._items = {}
 
+    def _find_page(self, access: MemoryType, size: int) -> MemoryPage:
+        # Find memory list
+        list = SortedList()
+        if access is MemoryType.RO:
+           list = self._ro_pages
+        else:
+            list = self._rw_pages
+        
+        for page in list:
+            if page.capacity - page.size >= size:
+                return page
+
+    def add_item(self, item):
+        #TODO: Validate item.
+
+        # get page with space
+        pass
+        
+
 mu = Uc(UC_ARCH_ARM, UC_MODE_THUMB) 
-print(DEFAULT_CODEPAD_MEM_START + DEFAULT_CODEPAD_MEM_SZ)
-print(DEFAULT_SUBROUTINE_MEM_START)
 mem = Memory(mu=mu)
 
-print(mem._mem_pages)
+print(mem._ro_pages)
+page = mem._find_page(MemoryType.RO, 100)
+print(page)
