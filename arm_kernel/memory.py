@@ -15,15 +15,17 @@ from unicorn.arm_const import *
 
 ALIGNMENT = 4 * 1024
 
-def next_aligned(n: int) -> int:
-    return (n + ALIGNMENT) & -(ALIGNMENT-1)
+def next_aligned(n: int, alignment: int = ALIGNMENT) -> int:
+    return (n + alignment) & -(alignment-1)
 
 class MemoryType(Enum):
-    MEM_CODE = 1
-    MEM_MAIN = 2
-    MEM_RO = 3
-    MEM_RW = 4
-    MEM_SUBROUTINE = 5 
+    CODE = 1
+    MAIN = 2
+    RO = 3
+    RW = 4
+    SUBROUTINE = 5 
+    STACK = 6
+    
 
 STACK_ADDR = 0x0
 STACK_SZ = 1024*1024
@@ -52,15 +54,18 @@ class MemoryPage:
         self.next_address = start
         self.labels = []
 
+# Item: Tuple("label", type, access, content)
+
+
 class Memory:
     def __init__(self, mu: unicorn.Uc):
         self._mu = mu
 
         # Setup main memory regions map
         self._mem_regions = {
-            MemoryType.MEM_CODE: (DEFAULT_CODEPAD_MEM_START, DEFAULT_CODEPAD_MEM_START + DEFAULT_CODEPAD_MEM_SZ), 
-            MemoryType.MEM_SUBROUTINE: (DEFAULT_SUBROUTINE_MEM_START, DEFAULT_SUBROUTINE_MEM_START + DEFAULT_SUBROUTINE_MEM_SZ),
-            MemoryType.MEM_MAIN: (DEFAULT_MAIN_MEM_START, DEFAULT_MAIN_MEM_START +  DEFAULT_MAIN_MEM_SZ)
+            MemoryType.CODE: (DEFAULT_CODEPAD_MEM_START, DEFAULT_CODEPAD_MEM_START + DEFAULT_CODEPAD_MEM_SZ), 
+            MemoryType.SUBROUTINE: (DEFAULT_SUBROUTINE_MEM_START, DEFAULT_SUBROUTINE_MEM_START + DEFAULT_SUBROUTINE_MEM_SZ),
+            MemoryType.MAIN: (DEFAULT_MAIN_MEM_START, DEFAULT_MAIN_MEM_START +  DEFAULT_MAIN_MEM_SZ)
         }
 
         self._mu.mem_map(address=DEFAULT_CODEPAD_MEM_START, size=DEFAULT_CODEPAD_MEM_SZ, perms=UC_PROT_EXEC | UC_PROT_READ)
@@ -68,13 +73,14 @@ class Memory:
 
         # Setup pages map
         self._mem_pages = SortedList(iterable=[
-            MemoryPage(MemoryType.MEM_RW, DEFAULT_RW_MEM_START, DEFAULT_RW_MEM_SZ),
-            MemoryPage(MemoryType.MEM_RO, DEFAULT_RO_MEM_START, DEFAULT_RO_MEM_SZ)
+            MemoryPage(MemoryType.RW, DEFAULT_RW_MEM_START, DEFAULT_RW_MEM_SZ),
+            MemoryPage(MemoryType.RO, DEFAULT_RO_MEM_START, DEFAULT_RO_MEM_SZ)
         ], key=lambda x: x.start)
+
         self._mu.mem_map(DEFAULT_RW_MEM_START, DEFAULT_RW_MEM_SZ)
         self._mu.mem_map(DEFAULT_RO_MEM_START, DEFAULT_RO_MEM_SZ, perms=UC_PROT_READ)
 
-        self._labels = {}
+        self._items = {}
 
 mu = Uc(UC_ARCH_ARM, UC_MODE_THUMB) 
 print(DEFAULT_CODEPAD_MEM_START + DEFAULT_CODEPAD_MEM_SZ)

@@ -1,0 +1,7 @@
+capstone==4.0.2
+ipykernel==6.20.1
+keystone==22.0.0
+keystone_engine==0.9.2
+PyYAML==6.0
+sortedcontainers==2.4.0
+unicorn==2.0.0
