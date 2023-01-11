@@ -1,23 +1,25 @@
 from enum import Enum
+import yaml
+from yaml.loader import SafeLoader
 import re
 
-CODE_1 = """$$content:mem-ro
-label1:
-    .word 1,2,3
-label2:
-    .asciiz "Samuel"
+CODE_1 = """$$config
+memory:
+	label1:
+		type: word
+		content: [1,2,3,4]
+		access: ro
+	label2:
+		type: byte
+		content: [1,2,3,4]
+		access: rw
 """
 
 class BlockType(Enum):
     INVALID = 0
     TEXT = 1
-    MEM_RO = 2
-    MEM_RW = 3
+    CONFIG = 2
     MEM_FUNC = 4
-
-rx_dict = {
-    'memory_labels': re.compile(r'(?P<label>[^\s]+:)')
-}
 
 class Preprocessor:
 
@@ -26,46 +28,41 @@ class Preprocessor:
         print("Preprocessor")
 
     def parse(self, text: str) -> dict:
-
-        # remove whitespace from beginning of line
+        # remove whitespace from beginning of line.
         text = text.lstrip()
-        #separate lines
-        lines = text.splitlines()
-        if len(lines) < 1:
+
+        # Get first line.
+        partition = text.split('\n', 1)
+        if len(partition) < 1:
             return {'type': BlockType.INVALID}
         # first line will indicate block type
-        block_type = self.parse_type(lines[0])
+        block_type = self.parse_type(partition[0])
+
         content = {}
         match block_type:
-            case BlockType.MEM_RO:
-                content = self.parse_memory(lines[1:])
+            case BlockType.CONFIG:
+                content = self.parse_config(partition[1])
                 print(content)
 
         return {
             'type': block_type,
-            'content': '\n'.join(lines[1:]),
+            'content': content,
         }
     
     def parse_type(self, line: str) -> BlockType:
         line = line.strip()
         match line:
-            case "$$content:mem-ro":
-                return BlockType.MEM_RO
-            case "$$content:mem-rw":
-                return BlockType.MEM_RW
+            case "$$config":
+                return BlockType.CONFIG
             case _:
                 return BlockType.TEXT
 
-    def parse_memory(self, lines: list[str]) -> dict:
-        labels = []
-        for line in lines:
-            label = rx_dict['memory_labels'].search(line)
-            if label is not None:
-                labels.append(label)
-                print(label.group("label"))
-
-        print(labels)
-        return {}
+    def parse_config(self, config: str) -> dict:
+        # Parse YAML config.
+        config = config.replace('\t', "  ")
+        parsed = yaml.load(config, Loader=SafeLoader)
+        
+        return parsed
 
 prep = Preprocessor()
 prep.parse(CODE_1)
