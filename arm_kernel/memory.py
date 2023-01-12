@@ -176,6 +176,10 @@ class Memory:
 
         self._items = {}
 
+    @property
+    def codepad_address(self) -> int:
+        return self._mem_regions[MemoryType.CODE][0]
+
     def _find_page(self, access: MemoryType, size: int) -> MemoryPage:
         # Find memory list
         list = SortedList()
@@ -190,6 +194,10 @@ class Memory:
         
         #TODO: Create new page if no page found
         raise Exception("No page found") # this will be substituted by the creation of a new page
+
+    def write_code(self, code: bytes):
+        address = self._mem_regions[MemoryType.CODE][0]
+        self._mu.mem_write(address, code)  
 
     def add_item(self, item: MemoryItem):
         #TODO: Validate item.
