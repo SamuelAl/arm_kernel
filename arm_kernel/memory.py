@@ -154,13 +154,20 @@ class Memory:
 
         # Setup main memory regions map
         self._mem_regions = {
-            MemoryType.CODE: (DEFAULT_CODEPAD_MEM_START, DEFAULT_CODEPAD_MEM_START + DEFAULT_CODEPAD_MEM_SZ), 
-            MemoryType.SUBROUTINE: (DEFAULT_SUBROUTINE_MEM_START, DEFAULT_SUBROUTINE_MEM_START + DEFAULT_SUBROUTINE_MEM_SZ),
-            MemoryType.MAIN: (DEFAULT_MAIN_MEM_START, DEFAULT_MAIN_MEM_START +  DEFAULT_MAIN_MEM_SZ)
+            MemoryType.STACK: (STACK_ADDR, STACK_ADDR + STACK_SZ - 1),
+            MemoryType.CODE: (DEFAULT_CODEPAD_MEM_START, DEFAULT_CODEPAD_MEM_START + DEFAULT_CODEPAD_MEM_SZ - 1), 
+            MemoryType.SUBROUTINE: (DEFAULT_SUBROUTINE_MEM_START, DEFAULT_SUBROUTINE_MEM_START + DEFAULT_SUBROUTINE_MEM_SZ - 1),
+            MemoryType.MAIN: (DEFAULT_MAIN_MEM_START, DEFAULT_MAIN_MEM_START +  DEFAULT_MAIN_MEM_SZ - 1)
         }
 
         self._mu.mem_map(address=DEFAULT_CODEPAD_MEM_START, size=DEFAULT_CODEPAD_MEM_SZ, perms=UC_PROT_EXEC | UC_PROT_READ)
+        self._memset(self._mem_regions[MemoryType.CODE])
         self._mu.mem_map(address=DEFAULT_SUBROUTINE_MEM_START, size=DEFAULT_SUBROUTINE_MEM_SZ, perms=UC_PROT_EXEC | UC_PROT_READ)
+        self._memset(self._mem_regions[MemoryType.SUBROUTINE])
+        # Configure stack
+        self._mu.mem_map(address=STACK_ADDR, size=STACK_SZ)
+        self._memset(self._mem_regions[MemoryType.STACK])
+        self._mu.reg_write(UC_ARM_REG_SP, STACK_ADDR + STACK_SZ)
 
         # Setup pages map
         self._rw_pages = SortedList(iterable=[
@@ -172,13 +179,27 @@ class Memory:
         ], key=lambda x: x.start)
 
         self._mu.mem_map(DEFAULT_RW_MEM_START, DEFAULT_RW_MEM_SZ)
+        self._memset((DEFAULT_RW_MEM_START, DEFAULT_RW_MEM_START + DEFAULT_RW_MEM_SZ - 1))
         self._mu.mem_map(DEFAULT_RO_MEM_START, DEFAULT_RO_MEM_SZ, perms=UC_PROT_READ)
+        self._memset((DEFAULT_RO_MEM_START, DEFAULT_RO_MEM_START + DEFAULT_RO_MEM_SZ - 1))
 
         self._items = {}
 
     @property
     def codepad_address(self) -> int:
         return self._mem_regions[MemoryType.CODE][0]
+
+    # ref: mem.py in https://book-of-gehn.github.io/articles/2021/01/09/Interactive-Assembler.html
+    def _memset(self, region: tuple[int, int], val: int = 0):
+        step = 0x2000  # 8k
+        if val:
+            data = bytes([val]) * step
+        else:
+            data = bytes(step)  # null initialized
+        for addr in range(region[0], region[1] + 1, step):
+            if addr + step > region[1] + 1:
+                data = data[:region[1] - addr + 1]
+            self._mu.mem_write(addr, data)
 
     def _find_page(self, access: MemoryType, size: int) -> MemoryPage:
         # Find memory list
@@ -227,12 +248,12 @@ class Memory:
 
 
 # Small test
-# mu = Uc(UC_ARCH_ARM, UC_MODE_THUMB) 
-# mem = Memory(mu=mu)
+mu = Uc(UC_ARCH_ARM, UC_MODE_THUMB) 
+mem = Memory(mu=mu)
 
-# item = MemoryItem("label",  ItemType.WORD, MemoryType.RW, size=2, content=[1,2])
-# print(item)
-# mem.add_item(item)
-# print(mem.find_item(item.label))
-# test = mem.read_item(item.label)
-# print(test)
+item = MemoryItem("label",  ItemType.WORD, MemoryType.RW, size=2, content=[1,2])
+print(item)
+mem.add_item(item)
+print(mem.find_item(item.label))
+test = mem.read_item(item.label)
+print(test)
