@@ -234,8 +234,6 @@ class Memory:
             print(error)
         else:
             self._items[item.label] = (addrs, item.byte_size)
-
-        print(page)
     
     def read_item(self, label: str) -> bytearray:
         item = self._items[label]
@@ -248,12 +246,12 @@ class Memory:
 
 
 # Small test
-mu = Uc(UC_ARCH_ARM, UC_MODE_THUMB) 
-mem = Memory(mu=mu)
+# mu = Uc(UC_ARCH_ARM, UC_MODE_THUMB) 
+# mem = Memory(mu=mu)
 
-item = MemoryItem("label",  ItemType.WORD, MemoryType.RW, size=2, content=[1,2])
-print(item)
-mem.add_item(item)
-print(mem.find_item(item.label))
-test = mem.read_item(item.label)
-print(test)
+# item = MemoryItem("label",  ItemType.WORD, MemoryType.RW, size=2, content=[1,2])
+# print(item)
+# mem.add_item(item)
+# print(mem.find_item(item.label))
+# test = mem.read_item(item.label)
+# print(test)
