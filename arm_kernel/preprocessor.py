@@ -3,16 +3,17 @@ import yaml
 from yaml.loader import SafeLoader
 import re
 
-CODE_1 = """$$config
+CODE_1 = """__config__
 memory:
-	label1:
-		type: word
-		content: [1,2,3,4]
-		access: ro
-	label2:
-		type: byte
-		content: [1,2,3,4]
-		access: rw
+    items:
+        label1:
+            type: word
+            content: [1,2,3,4]
+            access: ro
+        label2:
+            type: byte
+            content: [1,2,3,4]
+            access: rw
 """
 
 class BlockType(Enum):
@@ -23,11 +24,8 @@ class BlockType(Enum):
 
 class Preprocessor:
 
-    def __init__(self):
-        # Initializer
-        print("Preprocessor")
-
-    def parse(self, text: str) -> dict:
+    @staticmethod
+    def parse(text: str) -> dict:
         # remove whitespace from beginning of line.
         text = text.lstrip()
 
@@ -36,12 +34,12 @@ class Preprocessor:
         if len(partition) < 1:
             return {'type': BlockType.INVALID}
         # first line will indicate block type
-        block_type = self.parse_type(partition[0])
+        block_type = Preprocessor.parse_type(partition[0])
 
         content = {}
         match block_type:
             case BlockType.CONFIG:
-                content = self.parse_config(partition[1])
+                content = Preprocessor.parse_config(partition[1])
                 print(content)
 
         return {
@@ -49,15 +47,17 @@ class Preprocessor:
             'content': content,
         }
     
-    def parse_type(self, line: str) -> BlockType:
+    @staticmethod
+    def parse_type(line: str) -> BlockType:
         line = line.strip()
         match line:
-            case "$$config":
+            case "__config__":
                 return BlockType.CONFIG
             case _:
                 return BlockType.TEXT
 
-    def parse_config(self, config: str) -> dict:
+    @staticmethod
+    def parse_config(config: str) -> dict:
         # Parse YAML config.
         config = config.replace('\t', "  ")
         parsed = yaml.load(config, Loader=SafeLoader)
