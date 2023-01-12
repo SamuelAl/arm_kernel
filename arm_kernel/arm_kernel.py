@@ -2,6 +2,7 @@ from __future__ import print_function
 from sys import implementation
 from ipykernel.kernelbase import Kernel
 from emulator import Emulator
+from preprocessor import Preprocessor, BlockType
 
 def state_to_table(state_dict):
     table = ""
@@ -25,15 +26,32 @@ class ArmKernel(Kernel):
 
     emulator = Emulator()
 
+    def _execute_code(self, code: str):
+        state = self.emulator.execute_code(code)
+        stream_content = {
+            'metadata': {},
+            'data': {'text/html': state_to_table(state)}
+            }
+        self.send_response(self.iopub_socket, 'display_data', stream_content)
+
+    def _handle_config(self, config: dict):
+        # For now only handle memory:
+        
+        pass
+
     def do_execute(self, code, silent, store_history=True, user_expressions=None, allow_stdin=False):
         if not silent:
-            state = self.emulator.execute_code(code)
-            stream_content = {
-                'metadata': {},
-                'data': {'text/html': state_to_table(state)}
-                }
-            self.send_response(self.iopub_socket, 'display_data', stream_content)
-            
+
+            # Preprocess
+            parsed_block = Preprocessor.parse(code)
+
+            match parsed_block[0]:
+                case BlockType.TEXT:
+                    self._execute_code(parsed_block[1])
+                case BlockType.CONFIG:
+                    pass
+
+
             return {'status': 'ok',
                     # The base class increments the execution count
                     'execution_count': self.execution_count,

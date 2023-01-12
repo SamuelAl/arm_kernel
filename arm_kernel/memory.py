@@ -117,6 +117,7 @@ class MemoryItem:
         else:
             return self.content.to_bytes(bytes_per_val, 'little')
 
+
 class MemoryPage:
 
     def __init__(self, type: MemoryType, start: int, capacity: int):

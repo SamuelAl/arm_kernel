@@ -1,7 +1,6 @@
 from enum import Enum
 import yaml
 from yaml.loader import SafeLoader
-import re
 
 CODE_1 = """__config__
 memory:
@@ -15,6 +14,12 @@ memory:
             content: [1,2,3,4]
             access: rw
 """
+CODE_2 = """
+LDR R0, =test
+LDR R1, [R0]
+LDR R2, [R0, #8]
+MOV R0, R1
+"""
 
 class BlockType(Enum):
     INVALID = 0
@@ -25,7 +30,7 @@ class BlockType(Enum):
 class Preprocessor:
 
     @staticmethod
-    def parse(text: str) -> dict:
+    def parse(text: str) -> tuple:
         # remove whitespace from beginning of line.
         text = text.lstrip()
 
@@ -40,12 +45,13 @@ class Preprocessor:
         match block_type:
             case BlockType.CONFIG:
                 content = Preprocessor.parse_config(partition[1])
-                print(content)
+            case BlockType.TEXT:
+                content = text
 
-        return {
-            'type': block_type,
-            'content': content,
-        }
+        return (
+            block_type,
+            content
+        )
     
     @staticmethod
     def parse_type(line: str) -> BlockType:
@@ -64,7 +70,7 @@ class Preprocessor:
         
         return parsed
 
-prep = Preprocessor()
-prep.parse(CODE_1)
+
+print(Preprocessor.parse(CODE_2))
 
 
