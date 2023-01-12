@@ -41,11 +41,9 @@ MOV R0, R1
 for register in range(13):
         emulator.reg_write(UC_ARM_REG_R0 + register, 0x0)
 
-encoded_code, count_code = mem_asm.asm(TEST_CODE2, mem.codepad_address)
-print(encoded_code)
-#assembled_memory = bytes(encoded_memory)
-assembled_code = bytes(encoded_code)
-print(f"count_code: {count_code}, len: {len(encoded_code)}")
+assembled_code, count_code = mem_asm.asm(TEST_CODE2, mem.codepad_address, as_bytes=True)
+print(assembled_code)
+print(f"count_code: {count_code}, len: {len(assembled_code)}")
 for i in disassembler.disasm(assembled_code, mem.codepad_address, count_code):
     print("0x%x:\t%s\t%s" %(i.address, i.mnemonic, i.op_str))
 
