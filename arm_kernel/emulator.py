@@ -27,10 +27,12 @@ class Emulator:
     
     def __init__(self):
 
+        # Initialize emulation suite.
         self.asm = Ks(KS_ARCH_ARM, KS_MODE_THUMB)
         self.emu = Uc(UC_ARCH_ARM, UC_MODE_THUMB)
         self.mem = Memory(self.emu)
 
+        # Setup symbol resolution using managed memory.
         def sym_resolver(symbol, value):
             print("symbol: %s" % symbol.decode('utf-8'))
             address, _ = self.mem.find_item(symbol.decode('utf-8'))
@@ -75,3 +77,6 @@ class Emulator:
 
         except UcError as e:
             print("ERROR: %s" % e)
+    
+    def add_memory_item(self, item: MemoryItem):
+        self.mem.add_item(item)
