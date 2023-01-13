@@ -1,4 +1,5 @@
 from __future__ import print_function
+from collections import OrderedDict
 from unicorn import *
 from unicorn.arm_const import *
 from keystone import *
@@ -15,10 +16,13 @@ def hook_code(uc, address, size, user_data):
 
 def extract_cpu_state(uc):
     # Dictionary to hold registers.
-    state = {}
+    state = OrderedDict()
 
     for register in range(13):
         state["R%d" % register] = uc.reg_read(UC_ARM_REG_R0 + register)
+
+    state["SP"] = uc.reg_read(UC_ARM_REG_SP)
+    state["LR"] = uc.reg_read(UC_ARM_REG_LR)
     
     return state 
 

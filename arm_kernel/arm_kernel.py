@@ -4,7 +4,7 @@ from ipykernel.kernelbase import Kernel
 from emulator import Emulator
 from preprocessor import Preprocessor, BlockType
 from jinja2 import Environment, FileSystemLoader
-from templates.register_view_temps import REGISTERS_TEMPLATE
+from templates.register_view_temps import REGISTERS_TEMPLATE, DETAILED_REGISTERS_TEMPLATE
 
 class ArmKernel(Kernel):
     implementation = 'ARM Assembly'
@@ -22,7 +22,7 @@ class ArmKernel(Kernel):
     environment = Environment(loader=FileSystemLoader("templates/"))
 
     def _state_to_reg_view(self, state: dict) -> str:
-        template = self.environment.from_string(REGISTERS_TEMPLATE)
+        template = self.environment.from_string(DETAILED_REGISTERS_TEMPLATE)
         registers = []
         for key, value in state.items():
             registers.append((key, value))
