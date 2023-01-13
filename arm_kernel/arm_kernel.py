@@ -4,40 +4,7 @@ from ipykernel.kernelbase import Kernel
 from emulator import Emulator
 from preprocessor import Preprocessor, BlockType
 from jinja2 import Environment, FileSystemLoader
-
-REGISTERS_TEMPLATE = """
-<style>
-    table { border-collapse: collapse; }
-    td {
-        border-bottom: solid 1px black !important;
-        border-top: solid 1px black !important;  
-    }
-</style>
-<h3>Registers:</h3>
-<table>
-    <tr>
-        {% for i in range(reg_count//2) %}
-        <td class="t-cell"><strong>{{registers[i][0]}}:</strong></td>
-        <td class="t-cell">{{registers[i][1]}}</td>
-        {% endfor %}
-    </tr>
-    <tr>
-        {% for i in range(reg_count//2,reg_count) %}
-        <td class="t-cell"><strong>{{registers[i][0]}}:</strong></td>
-        <td class="t-cell">{{registers[i][1]}}</td>
-        {% endfor %}
-    </tr>
-</table>
-
-"""
-
-def state_to_table(state_dict):
-    table = ""
-    for key, value in state_dict.items():
-        table += "<tr><th>%s</th><th>%s</th></tr>" % (key,value)
-    result = "<table>" + table + "</table>"
-    return result
-
+from templates.register_view_temps import REGISTERS_TEMPLATE
 
 class ArmKernel(Kernel):
     implementation = 'ARM Assembly'
