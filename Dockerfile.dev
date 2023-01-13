@@ -1,5 +1,6 @@
-FROM python:3
+FROM ubuntu:latest
 
+RUN apt update && apt install python3-pip -y
 RUN pip install jupyterlab --quiet
 RUN pip install unicorn --quiet
 RUN pip install keystone-engine --quiet

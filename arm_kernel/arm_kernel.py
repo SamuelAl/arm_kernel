@@ -3,7 +3,25 @@ from sys import implementation
 from ipykernel.kernelbase import Kernel
 from emulator import Emulator
 from preprocessor import Preprocessor, BlockType
-from memory import MemoryItem, MemoryType, ItemType
+from jinja2 import Environment, FileSystemLoader
+
+REGISTERS_TEMPLATE = """
+<h3>Registers:</h3>
+<table>
+    <tr>
+        {% for i in range(reg_count//2) %}
+        <td><strong>{{registers[i][0]}}</strong></td>
+        <td>{{registers[i][1]}}</td>
+        {% endfor %}
+    </tr>
+    <tr>
+        {% for i in range(reg_count//2,reg_count) %}
+        <td><strong>{{registers[i][0]}}</strong></td>
+        <td>{{registers[i][1]}}</td>
+        {% endfor %}
+    </tr>
+</table>
+"""
 
 def state_to_table(state_dict):
     table = ""
@@ -26,12 +44,26 @@ class ArmKernel(Kernel):
     banner = "ARM Assembly - code an ARM CPU"
 
     emulator = Emulator()
+    environment = Environment(loader=FileSystemLoader("templates/"))
+
+    def _state_to_reg_view(self, state: dict) -> str:
+        template = self.environment.from_string(REGISTERS_TEMPLATE)
+        registers = []
+        for key, value in state.items():
+            registers.append((key, value))
+
+        context = {
+            "registers": registers,
+            "reg_count": len(registers)
+        }
+        return template.render(context)
+
 
     def _execute_code(self, code: str):
         state = self.emulator.execute_code(code)
         stream_content = {
             'metadata': {},
-            'data': {'text/html': state_to_table(state)}
+            'data': {'text/html': self._state_to_reg_view(state)}
             }
         self.send_response(self.iopub_socket, 'display_data', stream_content)
 
