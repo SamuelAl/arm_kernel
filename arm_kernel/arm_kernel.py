@@ -34,13 +34,21 @@ class ArmKernel(Kernel):
         return template.render(context)
 
 
-    def _execute_code(self, code: str):
-        state = self.emulator.execute_code(code)
-        stream_content = {
-            'metadata': {},
-            'data': {'text/html': self._state_to_reg_view(state)}
+    def _execute_code(self, content: str):
+        try:
+            state = self.emulator.execute_code(content["code"])
+            stream_content = {
+                'metadata': {},
+                'data': {'text/html': self._state_to_reg_view(state)}
             }
-        self.send_response(self.iopub_socket, 'display_data', stream_content)
+            self.send_response(self.iopub_socket, 'display_data', stream_content)
+        except Exception as error:
+            stream_content = {
+                'metadata': {},
+                'data': {'text/html': f"<p>Error: {str(error)}</p>"}
+            }
+            self.send_response(self.iopub_socket, 'display_data', stream_content)
+        
 
 
     def _handle_config(self, config: dict):

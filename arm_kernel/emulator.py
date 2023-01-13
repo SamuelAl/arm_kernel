@@ -4,6 +4,7 @@ from unicorn import *
 from unicorn.arm_const import *
 from keystone import *
 from memory import Memory, MemoryItem, MemoryType, ItemType
+import threading
 
 
 # callback for tracing basic blocks
@@ -65,16 +66,41 @@ class Emulator:
 
 
     def execute_code(self, code):
+        ret = []  # ret == [instrs, None] or [None, error]
+
+        def parse_assembly():
+            err = None
+            try:
+                instrs, count = self.asm.asm(code, as_bytes=True)
+                ret.extend((instrs, count, None))
+            except Exception as e:
+                instrs, count, err = None, None, e
+                ret.extend((instrs, count, err))
+            
+
+        th = threading.Thread(target=parse_assembly, daemon=True)
+        th.start()
+        th.join(5)
+
+        # keystone hang?
+        if not ret or th.is_alive():
+            raise TimeoutError("Assembler hanged due to syntax error or bug.")
+
+        assembled, count, err = ret
+
+        # keystone failed?
+        if err is not None:
+            raise err
+
+        # valid assembly but not instructions there (like a comment)
+        if not assembled:
+            return extract_cpu_state(self.emu)
 
         try:
-            # Initialize engine in X86-32bit mode.
-            assembled, count = self.asm.asm(code, as_bytes=True)
-            print(assembled)
-
             # write machine code to be emulated to memory
             self.mem.write_code(assembled)  
 
-            # emulate machine code in infinite time
+            # emulate machine code
             self.emu.emu_start(self.mem.codepad_address | 1, self.mem.codepad_address + len(assembled), count=count)
 
             return extract_cpu_state(self.emu)

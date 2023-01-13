@@ -2,6 +2,7 @@ from enum import Enum
 import yaml
 from yaml.loader import SafeLoader
 from memory import MemoryItem, MemoryType, ItemType
+import re
 
 CODE_1 = """__config__
 memory:
@@ -20,7 +21,11 @@ LDR R0, =test
 LDR R1, [R0]
 LDR R2, [R0, #8]
 MOV R0, R1
+>>> show registers
 """
+
+show_re = re.compile(r"^>>>\s+show\s+(?P<view>[a-zA-Z]+)(?P<context>\[([a-zA-Z0-9,\-:]*)\])?(\s+as\s+(?P<format>dec|hex))?")
+
 
 class BlockType(Enum):
     INVALID = 0
@@ -47,7 +52,11 @@ class Preprocessor:
             case BlockType.CONFIG:
                 content = Preprocessor.parse_config(partition[1])
             case BlockType.TEXT:
-                content = text
+                views, cleaned_code = Preprocessor.extract_views(text)
+                content = {
+                    "code": cleaned_code,
+                    "views": views
+                }
 
         return (
             block_type,
@@ -131,7 +140,17 @@ class Preprocessor:
             case _ :
                 raise ValueError(f"Invalid memory access type {val}.")
 
-
-print(Preprocessor.parse(CODE_1))
+    def extract_views(code: str):
+        lines = code.splitlines()
+        cleaned_code = []
+        views = []
+        for line in lines:
+            match = show_re.search(line)
+            if match is not None:
+                views.append(match.groupdict())
+            else:
+                cleaned_code.append(line)
+        
+        return views, '\n'.join(cleaned_code)
 
 
