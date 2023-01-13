@@ -6,21 +6,29 @@ from preprocessor import Preprocessor, BlockType
 from jinja2 import Environment, FileSystemLoader
 
 REGISTERS_TEMPLATE = """
+<style>
+    table { border-collapse: collapse; }
+    td {
+        border-bottom: solid 1px black !important;
+        border-top: solid 1px black !important;  
+    }
+</style>
 <h3>Registers:</h3>
 <table>
     <tr>
         {% for i in range(reg_count//2) %}
-        <td><strong>{{registers[i][0]}}</strong></td>
-        <td>{{registers[i][1]}}</td>
+        <td class="t-cell"><strong>{{registers[i][0]}}:</strong></td>
+        <td class="t-cell">{{registers[i][1]}}</td>
         {% endfor %}
     </tr>
     <tr>
         {% for i in range(reg_count//2,reg_count) %}
-        <td><strong>{{registers[i][0]}}</strong></td>
-        <td>{{registers[i][1]}}</td>
+        <td class="t-cell"><strong>{{registers[i][0]}}:</strong></td>
+        <td class="t-cell">{{registers[i][1]}}</td>
         {% endfor %}
     </tr>
 </table>
+
 """
 
 def state_to_table(state_dict):
