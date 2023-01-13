@@ -30,19 +30,24 @@ DETAILED_REGISTERS_TEMPLATE = """
         border-bottom: solid 1px black !important;
         border-top: solid 1px black !important;  
     }
+    button {
+        margin-right: 5px;
+        margin-bottom: 5px;
+        border: none;
+    }
 </style>
-<h3>Registers:</h3>
+<h4>Registers:</h4>
 <table>
     <tr>
         {% for i in range(6) %}
         <td class="t-cell"><strong>{{registers[i][0]}}:</strong></td>
-        <td class="t-cell">{{registers[i][1]}}</td>
+        <td class="reg-val">{{registers[i][1]}}</td>
         {% endfor %}
     </tr>
     <tr>
         {% for i in range(6,13) %}
         <td class="t-cell"><strong>{{registers[i][0]}}:</strong></td>
-        <td class="t-cell">{{registers[i][1]}}</td>
+        <td class="reg-val">{{registers[i][1]}}</td>
         {% endfor %}
     </tr>
 </table>

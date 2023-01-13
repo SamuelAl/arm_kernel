@@ -25,7 +25,7 @@ class ArmKernel(Kernel):
         template = self.environment.from_string(DETAILED_REGISTERS_TEMPLATE)
         registers = []
         for key, value in state.items():
-            registers.append((key, value))
+            registers.append((key, hex(value)))
 
         context = {
             "registers": registers,
