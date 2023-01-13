@@ -4,7 +4,7 @@ from ipykernel.kernelbase import Kernel
 from emulator import Emulator
 from preprocessor import Preprocessor, BlockType
 from jinja2 import Environment, FileSystemLoader
-from templates.register_view_temps import REGISTERS_TEMPLATE, DETAILED_REGISTERS_TEMPLATE
+from templates.register_view_temps import DETAILED_REGISTERS_TEMPLATE
 
 class ArmKernel(Kernel):
     implementation = 'ARM Assembly'
