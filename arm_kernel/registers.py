@@ -3,6 +3,8 @@
 from collections import namedtuple, OrderedDict
 from unicorn import arm_const
 from functools import partial
+from bitstring import Bits
+from fnmatch import fnmatch
 
 _supported_regs = {
     'arm': (
@@ -94,6 +96,51 @@ class Register(
         return self.name == other.name and self.val == other.val
 
 
+def _get_flag(reg, flag_descr, reg_sz):
+    ''' Return a Bits representation of a subset of the register <reg>.
+
+        The subset is defined by the flag descriptor assuming a register
+        of <reg_sz> size.
+
+        >>> reg = _make_registers_dummy(['cpsr'], [0b1000000000001100])[0]
+
+        An integer means a single bit:
+
+        >>> _get_flag(reg, 0, 16).bin    # LSB
+        '0'
+        >>> _get_flag(reg, 15, 16).bin    # MSB
+        '1'
+
+        A slice object means a range of bits:
+
+        >>> _get_flag(reg, slice(0, 4), 16).bin
+        '1100'
+
+        A tuple of integers and slices means a range of bits that
+        cannot be represented by a single slice because they are
+        non-contiguous.
+
+        >>> _get_flag(reg, (15, 14, slice(0, 4)), 16).bin
+        '101100'
+        '''
+    # Note: we reverse the bits at the begin and then at the end.
+    # This allows the indexing notation to put the low numbers (0)
+    # on the right to select LSB and the high number (N-1) on the left
+    # to select the MSB
+    bs = Bits(uint=reg.val, length=reg_sz)[::-1]
+    if isinstance(flag_descr, int):
+        seq = [bs[flag_descr:flag_descr + 1]]
+    elif isinstance(flag_descr, slice):
+        seq = [bs[flag_descr]]
+    else:
+        assert isinstance(flag_descr, tuple)
+        seq = [
+            (bs[d:d + 1] if isinstance(d, int) else bs[d]) for d in flag_descr
+        ]
+
+    assert isinstance(seq, list) and all(isinstance(b, Bits) for b in seq)
+    return sum(b[::-1] for b in seq)
+
 class FlagRegister(Register):
     def _define_flags_description(self):
         for name, descr in self.f_dscrs.items():
@@ -137,7 +184,8 @@ class FlagRegister(Register):
             '''
         return "%s =\n%s" % (self.display_name(), self.repr_val())
 
-def get_registers(mu, arch_name, mode_name):
+# Took away PC var, might have to add it later if more archs are supported.
+def get_registers(mu, arch_name:str = "arm", mode_name: str = "") -> list[Register]:
     mod, regprefix, ignore, pc_name, aliasses, _, f_regs = _supported_regs[
         arch_name]
     if isinstance(pc_name, dict):
@@ -150,7 +198,6 @@ def get_registers(mu, arch_name, mode_name):
     consts = [getattr(mod, n) for n in const_names]
 
     regs = []
-    pc = None
     for name, const in zip(regnames, consts):
         name = name.lower()
         if name in ignore:
@@ -164,17 +211,14 @@ def get_registers(mu, arch_name, mode_name):
         else:
             reg = Register(mu, name, const, alias, None, None)
 
-        if name == pc_name:
-            pc = reg
-
         if not reg.is_available():
             continue
 
         regs.append(reg)
 
-    return regs, pc
+    return regs
 
-def select_registers(regs, globs):
+def select_registers(regs, globs) -> list[Register]:
     ''' Filter the registers by name following the globs expressions
         (fnmatch).
 
