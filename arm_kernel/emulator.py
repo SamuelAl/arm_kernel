@@ -17,15 +17,15 @@ def hook_code(uc, address, size, user_data):
 
 def extract_cpu_state(uc):
     # Dictionary to hold registers.
-    state = OrderedDict()
+    registers = OrderedDict()
 
     for register in range(13):
-        state["R%d" % register] = uc.reg_read(UC_ARM_REG_R0 + register)
+        registers["r%d" % register] = uc.reg_read(UC_ARM_REG_R0 + register)
 
-    state["SP"] = uc.reg_read(UC_ARM_REG_SP)
-    state["LR"] = uc.reg_read(UC_ARM_REG_LR)
+    registers["r13"] = uc.reg_read(UC_ARM_REG_SP)
+    registers["r14"] = uc.reg_read(UC_ARM_REG_LR)
     
-    return state 
+    return {"registers": registers} 
 
 
 class Emulator:

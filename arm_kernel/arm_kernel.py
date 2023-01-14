@@ -24,7 +24,7 @@ class ArmKernel(Kernel):
     def _state_to_reg_view(self, state: dict) -> str:
         template = self.environment.from_string(DETAILED_REGISTERS_TEMPLATE)
         registers = []
-        for key, value in state.items():
+        for key, value in state["registers"].items():
             registers.append((key, hex(value)))
 
         context = {

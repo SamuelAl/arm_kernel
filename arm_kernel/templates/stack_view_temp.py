@@ -1,3 +1,4 @@
+STACK_VIEW = """
 <h4>Stack:</h4>
 <table>
 <tr>
@@ -11,3 +12,4 @@
     </tr>
 {% endfor %}
 </table>
+"""
