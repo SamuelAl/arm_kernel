@@ -2,9 +2,13 @@ from __future__ import print_function
 from collections import OrderedDict
 from unicorn import *
 from unicorn.arm_const import *
+from collections import namedtuple
 from keystone import *
 from memory import Memory, MemoryItem, MemoryType, ItemType
+import registers
 import threading
+from fnmatch import fnmatch
+
 
 
 # callback for tracing basic blocks
@@ -26,6 +30,82 @@ def extract_cpu_state(uc):
     registers["r14"] = uc.reg_read(UC_ARM_REG_LR)
     
     return {"registers": registers} 
+
+class EmulatorState(
+    namedtuple("registers", "memory")
+):
+    '''Represents the state of an emulated CPU'''
+
+    def select_registers(regs, globs) -> list[registers.Register]:
+        ''' Filter the registers by name following the globs expressions
+            (fnmatch).
+
+            Use '?' as a wildcard for a single character and '*' for zero or
+            more characters:
+
+            >>> list(select_registers(regs, ['e?x']))
+            [eax = 0, ebx = 0]
+
+            >>> list(select_registers(regs, ['e*']))
+            [eax = 0, ebx = 0, eip = 0, esi = 0]
+
+            >>> list(select_registers(regs, ['*i*']))
+            [eip = 0, esi = 0]
+
+            Charsets can be used with "[seq]" and "[!seq]".
+
+            >>> list(select_registers(regs, ['e[acde]x']))
+            [eax = 0]
+
+            >>> list(select_registers(regs, ['e[!acde]x']))
+            [ebx = 0]
+
+            Exact names can be used as well:
+
+            >>> list(select_registers(regs, ['eip']))
+            [eip = 0]
+
+            Several globs can be applied at the same time: any
+            register matching at least one of the globs will be returned
+
+            >>> list(select_registers(regs, ["eax", "ebx"]))
+            [eax = 0, ebx = 0]
+
+            A glob prefixed with "!" will negate the match. This is a way
+            to block registers matched by a previous glob:
+
+            >>> list(select_registers(regs, ["e*", "!eip"]))
+            [eax = 0, ebx = 0, esi = 0]
+
+            The registers allowed by globs determine also the order: registers
+            allowed first appear before.
+
+            >>> list(select_registers(regs, ["e*", "!e?x", "eax"]))
+            [eip = 0, esi = 0, eax = 0]
+
+            If not glob is given no register is selected:
+
+            >>> list(select_registers(regs, []))
+            []
+        '''
+
+        if not globs:
+            return iter(list())
+
+        selected = []
+        for g in globs:
+            if g and g[0] == "!":
+                selected = [r for r in selected if not fnmatch(r.name, g[1:])]
+            else:
+                more = [
+                    r for r in regs if r not in selected and fnmatch(r.name, g)
+                ]
+                selected += more
+
+        return selected
+
+
+    
 
 
 class Emulator:
