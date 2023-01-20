@@ -48,7 +48,7 @@ _supported_regs = {
     }
 
 class Register(
-    namedtuple('mu', 'name', 'const', 'alias', 'f_dscrs', 'sz')
+    namedtuple('R', ('mu', 'name', 'const', 'alias', 'f_dscrs', 'sz'))
 ):
     ''' A representation of a CPU register.'''
 
@@ -70,7 +70,7 @@ class Register(
         try:
             _ = self.val
             return True
-        except _:
+        except:
             return False
 
     def repr_val(self):

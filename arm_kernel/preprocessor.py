@@ -24,7 +24,7 @@ MOV R0, R1
 >>> show registers
 """
 
-show_re = re.compile(r"^>>>\s+show\s+(?P<view>[a-zA-Z]+)(?P<context>\[([a-zA-Z0-9,\-:]*)\])?(\s+as\s+(?P<format>dec|hex))?")
+show_re = re.compile(r"^>>>\s+show\s+(?P<view>[a-zA-Z]+)(\[(?P<context>[a-zA-Z0-9,\-:]*)\])?(\s+as\s+(?P<format>dec|hex))?")
 
 
 class BlockType(Enum):
@@ -140,6 +140,7 @@ class Preprocessor:
             case _ :
                 raise ValueError(f"Invalid memory access type {val}.")
 
+    @staticmethod
     def extract_views(code: str):
         lines = code.splitlines()
         cleaned_code = []

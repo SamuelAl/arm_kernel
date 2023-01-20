@@ -5,6 +5,7 @@ from emulator import Emulator
 from preprocessor import Preprocessor, BlockType
 from jinja2 import Environment, FileSystemLoader
 from templates.register_view_temps import DETAILED_REGISTERS_TEMPLATE
+from view import View
 
 class ArmKernel(Kernel):
     implementation = 'ARM Assembly'
@@ -19,7 +20,7 @@ class ArmKernel(Kernel):
     banner = "ARM Assembly - code an ARM CPU"
 
     emulator = Emulator()
-    environment = Environment(loader=FileSystemLoader("templates/"))
+    view = View()
 
     def _state_to_reg_view(self, state: dict) -> str:
         template = self.environment.from_string(DETAILED_REGISTERS_TEMPLATE)
@@ -34,14 +35,15 @@ class ArmKernel(Kernel):
         return template.render(context)
 
 
-    def _execute_code(self, content: str):
+    def _execute_code(self, content: dict):
         try:
             state = self.emulator.execute_code(content["code"])
-            stream_content = {
-                'metadata': {},
-                'data': {'text/html': self._state_to_reg_view(state)}
-            }
-            self.send_response(self.iopub_socket, 'display_data', stream_content)
+            if len(content["views"]) > 0:
+                stream_content = {
+                    'metadata': {},
+                    'data': {'text/html': self.view.get_view(content["views"][0], state)}
+                }
+                self.send_response(self.iopub_socket, 'display_data', stream_content)
         except Exception as error:
             stream_content = {
                 'metadata': {},
