@@ -1,6 +1,7 @@
 from fnmatch import fnmatch
 from jinja2 import Environment, FileSystemLoader
 from templates.register_view_temps import DETAILED_REGISTERS_TEMPLATE
+from templates.stack_view_temp import STACK_VIEW
 from emulator import EmulatorState
 import registers
 import pynumparser
@@ -21,7 +22,25 @@ class View:
         match view_config["view"]:
             case "registers":
                 return self.gen_registers_view(view_config, state)
+            case "stack":
+                return self.gen_stack_view(view_config, state)
     
+    def gen_stack_view(self, view_config: dict, state: EmulatorState) -> str:
+        template = self.env.from_string(STACK_VIEW)
+        sp = self.select_registers(state.registers, ["sp"])[0]
+        mem = state.memory
+        sp_region = mem.stack_region
+        rows = []
+        for addrs in range(sp_region[1]-3, sp.val - 8, -4):
+            print(hex(addrs))
+            content = mem.read_address(addrs)
+            content = int.from_bytes(content, "little")
+            rows.append((hex(addrs), self._format(content, view_config.get("format"))))
+
+        print(rows)
+        context = {"content": rows}
+        return template.render(context)
+
     def gen_registers_view(self, view_config: dict, state: EmulatorState) -> str:
         template = self.env.from_string(DETAILED_REGISTERS_TEMPLATE)
         if "context" in view_config and view_config["context"] is not None:
@@ -29,7 +48,7 @@ class View:
         else:
             pattern = ["0-12"]
         selected = self.select_registers(state.registers, pattern)
-        registers = [(r.name, self._format(r.val, view_config["format"])) for r in selected]
+        registers = [(r.name, self._format(r.val, view_config.get("format"))) for r in selected]
         context = {
             "registers": registers,
             "reg_count": len(selected)

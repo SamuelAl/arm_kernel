@@ -169,6 +169,7 @@ class Memory:
         self._mu.mem_map(address=STACK_ADDR, size=STACK_SZ)
         self._memset(self._mem_regions[MemoryType.STACK])
         self._mu.reg_write(UC_ARM_REG_SP, STACK_ADDR + STACK_SZ)
+        self._mu.reg_write(UC_ARM_REG_FP, STACK_ADDR + STACK_SZ)
 
         # Setup pages map
         self._rw_pages = SortedList(iterable=[
@@ -189,6 +190,10 @@ class Memory:
     @property
     def codepad_address(self) -> int:
         return self._mem_regions[MemoryType.CODE][0]
+
+    @property
+    def stack_region(self) -> tuple[int, int]:
+        return self._mem_regions[MemoryType.STACK]
 
     # ref: mem.py in https://book-of-gehn.github.io/articles/2021/01/09/Interactive-Assembler.html
     def _memset(self, region: tuple[int, int], val: int = 0):
@@ -244,6 +249,12 @@ class Memory:
 
     def find_item(self, label: str) -> tuple[int, int] | None:
         return self._items.get(label)
+
+    def read_address(self, address: int, size: int = 4) -> bytearray:
+        try:
+            return self._mu.mem_read(address, size)
+        except Exception as e:
+            raise Exception("Error reading from memory: %s" % str(e))
 
 
 # Small test

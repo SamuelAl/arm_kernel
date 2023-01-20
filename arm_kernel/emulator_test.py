@@ -10,13 +10,20 @@ LDR R1, [R0]
 LDR R2, [R0, #8]
 MOV R0, R1
 """
+TEST_CODE_STACK = """
+MOV R0, #1
+MOV R1, #2
+MOV R2, #3
+MOV R3, #4
+PUSH {R0-R3}
+"""
 
 def main():
     emu = emulator.Emulator()
     view = View()
-    state = emu.execute_code(TEST_CODE_MOV)
-    print(state)
-    gen_view = view.gen_registers_view({"contex": "1-5"},state)
+    state = emu.execute_code(TEST_CODE_STACK)
+    # print(state)
+    gen_view = view.gen_stack_view({"contex": "1-5"},state)
     print(gen_view)
 
 if __name__ == "__main__":
