@@ -23,7 +23,10 @@ def main():
     view = View()
     state = emu.execute_code(TEST_CODE_STACK)
     # print(state)
-    gen_view = view.gen_stack_view({"contex": "1-5"},state)
+    cpsr = emu.select_registers(["cpsr"])[0]
+    print(cpsr.N.fget().bin)
+    
+    gen_view = view.gen_nzcv_flags_view(state)
     print(gen_view)
 
 if __name__ == "__main__":

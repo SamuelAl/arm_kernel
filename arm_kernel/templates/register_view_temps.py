@@ -1,28 +1,3 @@
-REGISTERS_TEMPLATE = """
-<style>
-    table { border-collapse: collapse; }
-    td {
-        border-bottom: solid 1px black !important;
-        border-top: solid 1px black !important;  
-    }
-</style>
-<h3>Registers:</h3>
-<table>
-    <tr>
-        {% for i in range(reg_count//2) %}
-        <td class="t-cell"><strong>{{registers[i][0]}}:</strong></td>
-        <td class="t-cell">{{registers[i][1]}}</td>
-        {% endfor %}
-    </tr>
-    <tr>
-        {% for i in range(reg_count//2,reg_count) %}
-        <td class="t-cell"><strong>{{registers[i][0]}}:</strong></td>
-        <td class="t-cell">{{registers[i][1]}}</td>
-        {% endfor %}
-    </tr>
-</table>
-"""
-
 DETAILED_REGISTERS_TEMPLATE = """
 <style>
     table { border-collapse: collapse; }
@@ -39,5 +14,20 @@ DETAILED_REGISTERS_TEMPLATE = """
         <td class="reg-val">{{reg[1]}}</td>
     </tr>
     {% endfor %}
+</table>
+"""
+
+NZCV_FLAGS_VIEW = """
+<h4>NZCV Flags</h4>
+<table>
+<tr>
+    <th>N</th><th>Z</th><th>C</th><th>V</th>
+</tr>
+<tr>
+    <td>{{n}}</td>
+    <td>{{z}}</td>
+    <td>{{c}}</td>
+    <td>{{v}}</td>
+</tr>
 </table>
 """

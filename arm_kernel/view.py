@@ -1,6 +1,6 @@
 from fnmatch import fnmatch
 from jinja2 import Environment, FileSystemLoader
-from templates.register_view_temps import DETAILED_REGISTERS_TEMPLATE
+from templates.register_view_temps import DETAILED_REGISTERS_TEMPLATE, NZCV_FLAGS_VIEW
 from templates.stack_view_temp import STACK_VIEW
 from emulator import EmulatorState
 import registers
@@ -24,6 +24,8 @@ class View:
                 return self.gen_registers_view(view_config, state)
             case "stack":
                 return self.gen_stack_view(view_config, state)
+            case "nzcv":
+                return self.gen_nzcv_flags_view(state)
     
     def gen_stack_view(self, view_config: dict, state: EmulatorState) -> str:
         template = self.env.from_string(STACK_VIEW)
@@ -37,8 +39,18 @@ class View:
             content = int.from_bytes(content, "little")
             rows.append((hex(addrs), self._format(content, view_config.get("format"))))
 
-        print(rows)
         context = {"content": rows}
+        return template.render(context)
+
+    def gen_nzcv_flags_view(self, state: EmulatorState) -> str:
+        template = self.env.from_string(NZCV_FLAGS_VIEW)
+        cpsr = self.select_registers(state.registers, ["cpsr"])[0]
+        context = {
+            "n": cpsr.N.fget().bin,
+            "z": cpsr.Z.fget().bin,
+            "c": cpsr.C.fget().bin,
+            "v": cpsr.V.fget().bin
+        }
         return template.render(context)
 
     def gen_registers_view(self, view_config: dict, state: EmulatorState) -> str:

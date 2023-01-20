@@ -147,7 +147,7 @@ class FlagRegister(Register):
             if descr is None:
                 continue
 
-            fget = partial(_get_flag, flag_descr=descr, reg_sz=self.sz)
+            fget = partial(_get_flag, reg=self, flag_descr=descr, reg_sz=self.sz)
             prop = property(fget, doc='Flag %s' % name)
             setattr(self, name, prop)
 
