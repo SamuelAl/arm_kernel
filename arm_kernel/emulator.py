@@ -123,7 +123,7 @@ class Emulator:
 
         # valid assembly but not instructions there (like a comment)
         if not assembled:
-            return extract_cpu_state(self.emu)
+            return EmulatorState(self.registers, self.mem)
 
         try:
             # write machine code to be emulated to memory

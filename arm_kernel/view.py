@@ -29,7 +29,7 @@ class View:
         else:
             pattern = ["0-12"]
         selected = self.select_registers(state.registers, pattern)
-        registers = [(r.name, r.val) for r in selected]
+        registers = [(r.name, self._format(r.val, view_config["format"])) for r in selected]
         context = {
             "registers": registers,
             "reg_count": len(selected)
@@ -60,3 +60,12 @@ class View:
                 selected += more
 
         return selected
+
+    def _format(self, val: int, format: any) -> str:
+        if format is None:
+            return str(val)
+        match format:
+            case "hex":
+                return hex(val)
+            case _:
+                return str(val)
