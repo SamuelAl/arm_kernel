@@ -1,11 +1,11 @@
 from __future__ import print_function
 from collections import OrderedDict
+from keystone import *
 from unicorn import *
 from unicorn.arm_const import *
 from collections import namedtuple
-from keystone import *
-from memory import Memory, MemoryItem, MemoryType, ItemType
-import registers
+from .memory import Memory, MemoryItem, MemoryType, ItemType
+from . import registers
 import threading
 from fnmatch import fnmatch
 import re

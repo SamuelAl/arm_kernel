@@ -1,9 +1,9 @@
 from fnmatch import fnmatch
 from jinja2 import Environment, FileSystemLoader
-from templates.register_view_temps import DETAILED_REGISTERS_TEMPLATE, NZCV_FLAGS_VIEW
-from templates.stack_view_temp import STACK_VIEW
-from emulator import EmulatorState
-import registers
+from .templates.register_view_temps import DETAILED_REGISTERS_TEMPLATE, NZCV_FLAGS_VIEW
+from .templates.stack_view_temp import STACK_VIEW
+from .emulator import EmulatorState
+from . import registers
 import pynumparser
 import re
 

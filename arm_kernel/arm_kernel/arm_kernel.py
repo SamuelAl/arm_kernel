@@ -1,11 +1,11 @@
 from __future__ import print_function
 from sys import implementation
 from ipykernel.kernelbase import Kernel
-from emulator import Emulator
-from preprocessor import Preprocessor, BlockType
+from .emulator import Emulator
+from .preprocessor import Preprocessor, BlockType
 from jinja2 import Environment, FileSystemLoader
-from templates.register_view_temps import DETAILED_REGISTERS_TEMPLATE
-from view import View
+from .templates.register_view_temps import DETAILED_REGISTERS_TEMPLATE
+from .view import View
 
 class ArmKernel(Kernel):
     implementation = 'ARM Assembly'
@@ -88,7 +88,4 @@ class ArmKernel(Kernel):
                     'payload': [],
                     'user_expressions': {},
             }
-
-if __name__ == '__main__':
-    from ipykernel.kernelapp import IPKernelApp
-    IPKernelApp.launch_instance(kernel_class=ArmKernel)            
+          

@@ -1,7 +1,7 @@
 from enum import Enum
 import yaml
 from yaml.loader import SafeLoader
-from memory import MemoryItem, MemoryType, ItemType
+from .memory import MemoryItem, MemoryType, ItemType
 import re
 
 CODE_1 = """__config__
