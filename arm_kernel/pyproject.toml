@@ -15,7 +15,7 @@ requires = [
 build-backend = "hatchling.build"
 
 [project]
-name = "arm-kernel"
+name = "arm-jupyter-kernel"
 description = 'Jupyter kernel for ARM Assemble language.'
 readme = "README.md"
 requires-python = ">=3.7"

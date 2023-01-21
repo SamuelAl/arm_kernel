@@ -1,3 +1,12 @@
-# ARM Assemble Language Kernel for Jupyter
+# ARM Assembly Language Kernel for Jupyter
 
-TBD
+## Installation
+
+### From PyPI
+
+To install `arm-jupyter-kernel` from PyPI:
+
+```console
+pip install arm-jupyter-kernel
+```
+
