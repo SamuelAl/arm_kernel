@@ -1,10 +1,13 @@
-FYP
+# ARM Assembly Language Kernel for Jupyter
 
-# Run env
-- docker run -it --rm -p 8888:8888 -v ${pwd}:/usr/src/app  arm-notebook
+## Installation
 
-- Run ./install.sh
-- Run export PYTHONPATH="/usr/local/share/jupyter/kernels/arm_kernel" 
-- Install requirements.txt using pip
-- Run ./run.sh
+### From PyPI
+
+To install `arm-jupyter-kernel` from PyPI:
+
+```console
+pip install arm-jupyter-kernel
+python -m arm_kernel.install
+```
 
