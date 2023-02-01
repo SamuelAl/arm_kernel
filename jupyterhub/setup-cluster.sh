@@ -1,0 +1,2 @@
+gcloud container clusters create --machine-type n1-standard-2 --num-nodes 2 --zone europe-west1-b --cluster-version latest jupyterhub-cluster
+helm upgrade --cleanup-on-fail --install rel-1 jupyterhub/jupyterhub --namespace jpt-dev --create-namespace --version=2.0.0 --values config.yaml

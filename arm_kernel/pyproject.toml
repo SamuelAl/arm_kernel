@@ -19,7 +19,7 @@ build-backend = "hatchling.build"
 name = "arm-jupyter-kernel"
 description = 'Jupyter kernel for ARM Assemble language.'
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.10"
 license = { file = "LICENSE" }
 keywords = ["ARM", "kernel", "jupyter", "assembly"]
 authors = [

@@ -1,0 +1,5 @@
+{
+    "argv":["/opt/conda/bin/python","-m","arm_kernel", "-f", "{connection_file}"],
+    "display_name":"ARM",
+    "language": "ARM Assembly"
+}
