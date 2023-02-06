@@ -30,8 +30,8 @@ class View:
                 return self.gen_stack_view(view_config, state)
             case "nzcv":
                 return self.gen_nzcv_flags_view(state)
-            case "mem":
-                return self.gen_mem_view(view_config, state)
+            case ("mem" | "memw" | "memh" | "memb") as mem_mode:
+                return self.gen_mem_view(view_config, state, mem_mode)
     
     def gen_stack_view(self, view_config: dict, state: EmulatorState) -> str:
         template = self.env.from_string(STACK_VIEW)
@@ -52,7 +52,7 @@ class View:
         }
         return template.render(context)
 
-    def gen_mem_view(self, view_config: dict, state: EmulatorState) -> str:
+    def gen_mem_view(self, view_config: dict, state: EmulatorState, mem_mode: str = "memw") -> str:
         template = self.env.from_string(MEMORY_WORD_VIEW)
         mem = state.memory
 
@@ -60,8 +60,17 @@ class View:
         init_addrss = metadata[0]
         byte_count = metadata[1]
         rows = []
-        for idx in range(0, len(content_bytes)-1, 4):
-            content = int.from_bytes(content_bytes[0 + idx: idx + 4], "little")
+
+        match (mem_mode):
+            case "memh":
+                offset = 2
+            case "memb":
+                offset = 1
+            case ("mem" | "memw"):
+                offset = 4
+
+        for idx in range(0, len(content_bytes)-offset+1, offset):
+            content = int.from_bytes(content_bytes[0 + idx: idx + offset], "little")
             rows.append((hex(init_addrss + idx), self._format(content, view_config["format"])))
         
         context = {
