@@ -33,7 +33,7 @@ class View:
         mem = state.memory
         sp_region = mem.stack_region
         rows = []
-        for addrs in range(sp_region[1]-3, sp.val - 8, -4):
+        for addrs in range(sp_region[1]-3, sp.val - 4, -4):
             print(hex(addrs))
             content = mem.read_address(addrs)
             content = int.from_bytes(content, "little")
@@ -41,8 +41,8 @@ class View:
 
         context = {
             "content": rows,
-            "bottom_address": sp_region[1]+1,
-            "sp": sp.val
+            "bottom_address": hex(sp_region[1]+1),
+            "sp": hex(sp.val)
         }
         return template.render(context)
 
