@@ -135,7 +135,7 @@ class Emulator:
             return EmulatorState(self.registers, self.mem)
 
         except UcError as e:
-            print("ERROR: %s" % e)
+            raise Exception("Error executing: %s" % e)
     
     def add_memory_item(self, item: MemoryItem):
         self.mem.add_item(item)
