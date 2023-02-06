@@ -8,10 +8,10 @@ STACK_VIEW = """
 </tr>
 <tr>
     <td>{{bottom_address}}</td>
-    <td>Stack Bottom</td>
+    <td>Bottom</td>
     <td>
         {% if sp == bottom_address %}
-        <em><--</em>
+        <em>&larr;</em>
         {% endif %}
     </td>
 </tr>
@@ -22,7 +22,7 @@ STACK_VIEW = """
         <td>{{row[1]}}</td>
         <td>
             {% if sp == row[0] %}
-            <em><--</em>
+            <em>&larr;</em>
             {% endif %}
         </td>
     </tr>
