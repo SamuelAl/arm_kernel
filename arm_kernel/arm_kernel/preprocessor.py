@@ -24,7 +24,7 @@ MOV R0, R1
 >>> show registers
 """
 
-show_re = re.compile(r"^>>>\s+show\s+(?P<view>[a-zA-Z]+)(\[(?P<context>[a-zA-Z0-9,\-:]*)\])?(\s+as\s+(?P<format>dec|hex))?")
+show_re = re.compile(r"^>>>\s+show\s+(?P<view>[a-zA-Z]+)(\[(?P<context>[a-zA-Z0-9,\-:]*)\])?(\s+as\s+(?P<format>dec|hex|bin))?")
 
 
 class BlockType(Enum):

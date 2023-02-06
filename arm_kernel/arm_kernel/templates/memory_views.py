@@ -9,7 +9,9 @@ MEMORY_WORD_VIEW = """
 {% for row in content %}
     <tr>
         <td>{{row[0]}}</td>
-        <td>{{row[1]}}</td>
+        {% for col in row[1] %}
+        <td>{{col}}</td>
+        {% endfor %}
     </tr>
 {% endfor %}
 </table>

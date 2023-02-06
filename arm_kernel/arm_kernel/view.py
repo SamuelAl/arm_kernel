@@ -60,21 +60,30 @@ class View:
         init_addrss = metadata[0]
         byte_count = metadata[1]
         rows = []
-
+        offset = 4
         match (mem_mode):
             case "memh":
-                offset = 2
+                cols = 2
+                col_offset = 2
             case "memb":
-                offset = 1
+                cols = 4
+                col_offset = 1
             case ("mem" | "memw"):
-                offset = 4
+                cols = 1
+                col_offset = 4
 
         for idx in range(0, len(content_bytes)-offset+1, offset):
-            content = int.from_bytes(content_bytes[0 + idx: idx + offset], "little")
-            rows.append((hex(init_addrss + idx), self._format(content, view_config["format"])))
+            columns = []
+            col_idx = idx
+            for _ in range(cols):
+                content = int.from_bytes(content_bytes[col_idx:col_idx + col_offset], "little")
+                columns.append(self._format(content, view_config["format"]))
+                col_idx += col_offset
+            rows.append((hex(init_addrss + idx), columns))
         
         context = {
             "content": rows,
+            "cols": cols
         }
         return template.render(context)
         # return f"""
@@ -138,6 +147,8 @@ class View:
         match format:
             case "hex":
                 return hex(val)
+            case "bin":
+                return bin(val)
             case _:
                 return str(val)
 
