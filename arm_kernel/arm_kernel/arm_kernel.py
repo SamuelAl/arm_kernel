@@ -60,7 +60,6 @@ class ArmKernel(Kernel):
             mem_config = config["memory"]
             for item in mem_config.get("items"):
                 self.emulator.add_memory_item(item)
-                labels = labels + item.label + " "
 
         stream_content = {
             'metadata': {},

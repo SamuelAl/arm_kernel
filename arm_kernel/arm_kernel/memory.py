@@ -99,7 +99,7 @@ class MemoryItem:
     # ref: [https://www.geeksforgeeks.org/how-to-convert-int-to-bytes-in-python/]    
     def to_bytes(self):
         
-        # Handle everything but strings and SPACE for now
+        # Handle everything but strings for now
         bytes_per_val = self._type_bytes(self.type)
 
         # Handle space
@@ -237,7 +237,7 @@ class Memory:
         try:
             page.add_item(self._mu, item)
         except Exception as error:
-            print(error)
+            raise Exception(f"Error writing content to memory: {str(error)}")
         else:
             self._items[item.label] = (addrs, item.byte_size)
     

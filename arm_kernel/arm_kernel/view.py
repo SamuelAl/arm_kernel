@@ -2,10 +2,14 @@ from fnmatch import fnmatch
 from jinja2 import Environment, FileSystemLoader
 from .templates.register_view_temps import DETAILED_REGISTERS_TEMPLATE, NZCV_FLAGS_VIEW
 from .templates.stack_view_temp import STACK_VIEW
+from .templates.memory_views import MEMORY_WORD_VIEW
 from .emulator import EmulatorState
 from . import registers
 import pynumparser
 import re
+from . import memory
+
+re_single_label = re.compile(r'^\w+$')
 
 class View:
     '''
@@ -26,6 +30,8 @@ class View:
                 return self.gen_stack_view(view_config, state)
             case "nzcv":
                 return self.gen_nzcv_flags_view(state)
+            case "mem":
+                return self.gen_mem_view(view_config, state)
     
     def gen_stack_view(self, view_config: dict, state: EmulatorState) -> str:
         template = self.env.from_string(STACK_VIEW)
@@ -45,6 +51,27 @@ class View:
             "sp": hex(sp.val)
         }
         return template.render(context)
+
+    def gen_mem_view(self, view_config: dict, state: EmulatorState) -> str:
+        template = self.env.from_string(MEMORY_WORD_VIEW)
+        mem = state.memory
+
+        metadata, content_bytes = self._get_memory_from_context(mem, view_config['context'])
+        init_addrss = metadata[0]
+        byte_count = metadata[1]
+        rows = []
+        for idx in range(0, len(content_bytes)-1, 4):
+            content = int.from_bytes(content_bytes[0 + idx: idx + 4], "little")
+            rows.append((hex(init_addrss + idx), self._format(content, view_config["format"])))
+        
+        context = {
+            "content": rows,
+        }
+        return template.render(context)
+        # return f"""
+        # <p>{str(content_bytes)}</p>
+        # <p>{str(rows)}</p>
+        # """
 
     def gen_nzcv_flags_view(self, state: EmulatorState) -> str:
         template = self.env.from_string(NZCV_FLAGS_VIEW)
@@ -104,3 +131,14 @@ class View:
                 return hex(val)
             case _:
                 return str(val)
+
+    def _get_memory_from_context(self, mem: memory.Memory, context) -> tuple[tuple[int, int], bytearray]:
+        if re_single_label.fullmatch(context) is None:
+            raise Exception("Error: memory address pattern is not valid.")
+        
+        label = context
+        addresses = mem.find_item(label)
+        if addresses is None:
+            raise Exception("Error: label was not found.")
+        
+        return (addresses, mem.read_item(label))
