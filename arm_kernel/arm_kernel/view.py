@@ -39,7 +39,11 @@ class View:
             content = int.from_bytes(content, "little")
             rows.append((hex(addrs), self._format(content, view_config.get("format"))))
 
-        context = {"content": rows}
+        context = {
+            "content": rows,
+            "bottom_address": sp_region[1]+1,
+            "sp": sp.val
+        }
         return template.render(context)
 
     def gen_nzcv_flags_view(self, state: EmulatorState) -> str:
