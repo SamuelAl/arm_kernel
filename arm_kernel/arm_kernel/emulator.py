@@ -40,8 +40,8 @@ class Emulator:
     def __init__(self):
 
         # Initialize emulation suite.
-        self.asm = Ks(KS_ARCH_ARM, KS_MODE_THUMB)
-        self.emu = Uc(UC_ARCH_ARM, UC_MODE_THUMB)
+        self.asm = Ks(KS_ARCH_ARM, KS_MODE_ARM)
+        self.emu = Uc(UC_ARCH_ARM, UC_MODE_ARM)
         self.mem = Memory(self.emu)
 
         # Setup symbol resolution using managed memory.
@@ -130,7 +130,9 @@ class Emulator:
             self.mem.write_code(assembled)  
 
             # emulate machine code
-            self.emu.emu_start(self.mem.codepad_address | 1, self.mem.codepad_address + len(assembled), count=count)
+            until = self.mem.codepad_address + len(assembled)
+            self.emu.ctl_remove_cache(until - 1, until)
+            self.emu.emu_start(self.mem.codepad_address, self.mem.codepad_address + len(assembled))
 
             return EmulatorState(self.registers, self.mem)
 

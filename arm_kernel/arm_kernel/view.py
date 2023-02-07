@@ -58,7 +58,6 @@ class View:
 
         metadata, content_bytes = self._get_memory_from_context(mem, view_config['context'])
         init_addrss = metadata[0]
-        byte_count = metadata[1]
         rows = []
         offset = 4
         match (mem_mode):
