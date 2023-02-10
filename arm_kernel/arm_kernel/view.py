@@ -45,12 +45,12 @@ class View:
             print(hex(addrs))
             content = mem.read_address(addrs)
             content = int.from_bytes(content, "little")
-            rows.append((hex(addrs), self._format(content, view_config.get("format"))))
+            rows.append((self._format(addrs, "hex"), self._format(content, view_config.get("format"))))
 
         context = {
             "content": rows,
-            "bottom_address": hex(sp_region[1]+1),
-            "sp": hex(sp.val)
+            "bottom_address": self._format(sp_region[1]+1, "hex"),
+            "sp": self._format(sp.val, "hex")
         }
         return template.render(context)
 
@@ -78,9 +78,9 @@ class View:
             col_idx = idx
             for _ in range(cols):
                 content = int.from_bytes(content_bytes[col_idx:col_idx + col_offset], "little")
-                columns.append(self._format(content, view_config["format"]))
+                columns.append(self._format(content, view_config["format"], col_offset*2))
                 col_idx += col_offset
-            rows.append((hex(init_addrss + idx), columns))
+            rows.append((self._format(init_addrss + idx, "hex"), columns))
         
         context = {
             "content": rows,
@@ -142,16 +142,20 @@ class View:
 
         return selected
 
-    def _format(self, val: int, format: any) -> str:
+    def _format(self, val: int, format: any, size: int = 8) -> str:
         if format is None:
             return str(val)
         match format:
             case "hex":
-                return hex(val)
+                return self._padhexa(hex(val), size)
             case "bin":
                 return bin(val)
             case _:
                 return str(val)
+
+    @staticmethod
+    def _padhexa(s: str, size: int):
+        return '0x' + s[2:].zfill(size)
 
     def _get_memory_from_context(self, mem: memory.Memory, context) -> tuple[tuple[int, int], bytearray]:
         if re_single_label.fullmatch(context) is None:
