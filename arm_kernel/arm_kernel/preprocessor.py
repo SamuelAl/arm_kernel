@@ -52,7 +52,7 @@ class Preprocessor:
             case BlockType.CONFIG:
                 content = Preprocessor.parse_config(partition[1])
             case BlockType.TEXT:
-                views, cleaned_code = Preprocessor.extract_views(text)
+                views, cleaned_code = Preprocessor.process_code(text)
                 content = {
                     "code": cleaned_code,
                     "views": views
@@ -145,16 +145,18 @@ class Preprocessor:
         values = decimal_imm_re.findall(line)
         for value in values:
             dec_val = int(value[1:])
-            hex_val = hex(dec_val)
+            hex_val = '#' + hex(dec_val)
             line = line.replace(value, hex_val)
         return line
 
     @staticmethod
-    def extract_views(code: str):
+    def process_code(code: str):
         lines = code.splitlines()
         cleaned_code = []
         views = []
         for line in lines:
+            # Substitute decimal immediate values with hex equivalent.
+            line = Preprocessor.hexify_immediate_values(line)
             match = show_re.search(line)
             if match is not None:
                 views.append(match.groupdict())
