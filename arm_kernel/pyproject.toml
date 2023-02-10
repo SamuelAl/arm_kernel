@@ -43,7 +43,7 @@ dependencies = [
   "pyparsing>=3.0.9",
   "PyYAML>=6.0",
   "sortedcontainers>=2.4.0",
-  "unicorn",
+  "unicorn==2.0.1",
 ]
 dynamic = ["version"]
 

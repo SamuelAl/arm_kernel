@@ -30,7 +30,7 @@ class View:
                 return self.gen_registers_view(view_config, state)
             case "stack":
                 return self.gen_stack_view(view_config, state)
-            case "nzcv":
+            case ("nzcv" | "flags"):
                 return self.gen_nzcv_flags_view(state)
             case ("mem" | "memw" | "memh" | "memb") as mem_mode:
                 return self.gen_mem_view(view_config, state, mem_mode)

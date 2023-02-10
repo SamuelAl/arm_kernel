@@ -2,6 +2,7 @@ from __future__ import print_function
 from sys import implementation
 
 from ipykernel.kernelbase import Kernel
+import logging
 
 from arm_kernel.emulator import Emulator
 from arm_kernel.preprocessor import Preprocessor, BlockType
@@ -18,11 +19,17 @@ class ArmKernel(Kernel):
         'file_extension': '.txt',
     }
     banner = "ARM Assembly - code an ARM CPU"
-
-    emulator = Emulator()
+    
     view = View()
 
+    
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.emulator = Emulator()
+
     def _execute_code(self, content: dict):
+        
         try:
             state = self.emulator.execute_code(content["code"])
             if len(content["views"]) > 0:
@@ -30,6 +37,10 @@ class ArmKernel(Kernel):
                     'metadata': {},
                     'data': {'text/html': self.view.get_view(content["views"][0], state)}
                 }
+                # stream_content = {
+                #     'metadata': {},
+                #     'data': {'text/plain': self.emulator.mem._items.items()}
+                # }
                 self.send_response(self.iopub_socket, 'display_data', stream_content)
         except Exception as error:
             stream_content = {

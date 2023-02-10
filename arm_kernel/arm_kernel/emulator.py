@@ -132,7 +132,7 @@ class Emulator:
 
             # emulate machine code
             until = self.mem.codepad_address + len(assembled)
-            self.emu.ctl_remove_cache(self.mem.codepad_address, until)
+            self.emu.ctl_remove_cache(self.mem.codepad_address, until+1)
             self.emu.emu_start(self.mem.codepad_address, self.mem.codepad_address + len(assembled), timeout=5000000)
 
             return EmulatorState(self.registers, self.mem)
