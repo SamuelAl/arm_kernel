@@ -4,12 +4,13 @@ from keystone import *
 from unicorn import *
 from unicorn.arm_const import *
 from collections import namedtuple
-from .memory import Memory, MemoryItem, MemoryType, ItemType
-from . import registers
 import threading
 from fnmatch import fnmatch
 import re
 import pynumparser
+
+from arm_kernel.memory import Memory, MemoryItem
+from arm_kernel import registers
 
 
 

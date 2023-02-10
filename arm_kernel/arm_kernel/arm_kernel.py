@@ -1,11 +1,11 @@
 from __future__ import print_function
 from sys import implementation
+
 from ipykernel.kernelbase import Kernel
-from .emulator import Emulator
-from .preprocessor import Preprocessor, BlockType
-from jinja2 import Environment, FileSystemLoader
-from .templates.register_view_temps import DETAILED_REGISTERS_TEMPLATE
-from .view import View
+
+from arm_kernel.emulator import Emulator
+from arm_kernel.preprocessor import Preprocessor, BlockType
+from arm_kernel.view import View
 
 class ArmKernel(Kernel):
     implementation = 'ARM Assembly'
@@ -21,19 +21,6 @@ class ArmKernel(Kernel):
 
     emulator = Emulator()
     view = View()
-
-    def _state_to_reg_view(self, state: dict) -> str:
-        template = self.environment.from_string(DETAILED_REGISTERS_TEMPLATE)
-        registers = []
-        for key, value in state["registers"].items():
-            registers.append((key, hex(value)))
-
-        context = {
-            "registers": registers,
-            "reg_count": len(registers)
-        }
-        return template.render(context)
-
 
     def _execute_code(self, content: dict):
         try:

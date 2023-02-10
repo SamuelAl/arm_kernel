@@ -1,13 +1,15 @@
+import re
+
 from fnmatch import fnmatch
 from jinja2 import Environment, FileSystemLoader
-from .templates.register_view_temps import DETAILED_REGISTERS_TEMPLATE, NZCV_FLAGS_VIEW
-from .templates.stack_view_temp import STACK_VIEW
-from .templates.memory_views import MEMORY_WORD_VIEW
-from .emulator import EmulatorState
-from . import registers
 import pynumparser
-import re
-from . import memory
+
+from arm_kernel.templates.register import DETAILED_REGISTERS_TEMPLATE, NZCV_FLAGS_VIEW
+from arm_kernel.templates.stack import STACK_VIEW
+from arm_kernel.templates.memory import MEMORY_WORD_VIEW
+from arm_kernel.emulator import EmulatorState
+from arm_kernel import registers
+from arm_kernel import memory
 
 re_single_label = re.compile(r'^\w+$')
 

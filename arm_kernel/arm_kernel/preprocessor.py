@@ -1,7 +1,7 @@
 from enum import Enum
 import yaml
 from yaml.loader import SafeLoader
-from .memory import MemoryItem, MemoryType, ItemType
+from arm_kernel.memory import MemoryItem, MemoryType, ItemType
 import re
 
 CODE_1 = """__config__
@@ -25,7 +25,7 @@ MOV R0, R1
 """
 
 show_re = re.compile(r"^>>>\s+show\s+(?P<view>[a-zA-Z]+)(\[(?P<context>[a-zA-Z0-9,\-:]*)\])?(\s+as\s+(?P<format>dec|hex|bin))?")
-
+decimal_imm_re = re.compile(r'#\d\d+')
 
 class BlockType(Enum):
     INVALID = 0
@@ -139,6 +139,15 @@ class Preprocessor:
                 return MemoryType.RW
             case _ :
                 raise ValueError(f"Invalid memory access type {val}.")
+
+    @staticmethod
+    def hexify_immediate_values(line: str) -> str:
+        values = decimal_imm_re.findall(line)
+        for value in values:
+            dec_val = int(value[1:])
+            hex_val = hex(dec_val)
+            line = line.replace(value, hex_val)
+        return line
 
     @staticmethod
     def extract_views(code: str):
