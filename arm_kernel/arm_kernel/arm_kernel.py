@@ -37,23 +37,14 @@ class ArmKernel(Kernel):
                     'metadata': {},
                     'data': {'text/html': self.view.get_view(content["views"][0], state)}
                 }
-                # stream_content = {
-                #     'metadata': {},
-                #     'data': {'text/plain': self.emulator.mem._items.items()}
-                # }
                 self.send_response(self.iopub_socket, 'display_data', stream_content)
         except Exception as error:
-            stream_content = {
-                'metadata': {},
-                'data': {'text/html': f"<p>Error: {str(error)}</p>"}
-            }
-            self.send_response(self.iopub_socket, 'display_data', stream_content)
+            raise Exception(f"Error executing code: {str(error)}")
         
 
 
     def _handle_config(self, config: dict):
         # For now only handle memory:
-        labels = "labels: "
         if config.get("memory") is not None:
             mem_config = config["memory"]
             for item in mem_config.get("items"):
@@ -67,22 +58,32 @@ class ArmKernel(Kernel):
         
 
     def do_execute(self, code, silent, store_history=True, user_expressions=None, allow_stdin=False):
-        if not silent:
+        if silent:
+            return
 
+        try:
             # Preprocess
             parsed_block = Preprocessor.parse(code)
-            print(parsed_block)
+            
             match parsed_block[0]:
                 case BlockType.TEXT:
                     self._execute_code(parsed_block[1])
                 case BlockType.CONFIG:
                     self._handle_config(parsed_block[1])
 
+        except Exception as e:
+                self.report_error(e)
 
-            return {'status': 'ok',
-                    # The base class increments the execution count
-                    'execution_count': self.execution_count,
-                    'payload': [],
-                    'user_expressions': {},
-            }
-          
+        return {'status': 'ok',
+                # The base class increments the execution count
+                'execution_count': self.execution_count,
+                'payload': [],
+                'user_expressions': {},
+        }
+    
+    def report_error(self, err: Exception):
+        stream_content = {
+            'metadata': {},
+            'data': {'text/html': f"<p>Error: {str(err)}</p>"}
+        }
+        self.send_response(self.iopub_socket, 'display_data', stream_content)

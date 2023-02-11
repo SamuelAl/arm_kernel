@@ -59,8 +59,9 @@ class View:
         mem = state.memory
 
         metadata, content_bytes = self._get_memory_from_context(mem, view_config['context'])
+        content_bytes += bytes([0] * (len(content_bytes)%4))
+        
         init_addrss = metadata[0]
-        rows = []
         offset = 4
         match (mem_mode):
             case "memh":
@@ -73,6 +74,7 @@ class View:
                 cols = 1
                 col_offset = 4
 
+        rows = []
         for idx in range(0, len(content_bytes)-offset+1, offset):
             columns = []
             col_idx = idx

@@ -11,6 +11,7 @@
 
 from collections import namedtuple
 from enum import Enum
+from struct import pack
 from sortedcontainers import SortedList
 from unicorn import *
 from unicorn.arm_const import *
@@ -81,30 +82,33 @@ class MemoryItem:
         byte_count = self._type_bytes(self.type)
 
         # Handle strings
-        if type is ItemType.STRING:
+        if self.type is ItemType.STRING:
             if isinstance(self.content, list):
                 raise ValueError("Only strings must be single, not lists.")
-            return len(self.content)
+            return len(self.content) + 1 # null terminate
             
         # Handle SPACE
-        elif type is ItemType.SPACE:
+        elif self.type is ItemType.SPACE:
             return self.size * self.byte_count
 
         # Handle other types
-        if isinstance(self.content, list):
+        elif isinstance(self.content, list):
             return max(self.size * byte_count, len(self.content) * byte_count)
         else:
             return byte_count
 
     # ref: [https://www.geeksforgeeks.org/how-to-convert-int-to-bytes-in-python/]    
     def to_bytes(self):
-        
-        # Handle everything but strings for now
         bytes_per_val = self._type_bytes(self.type)
 
         # Handle space
         if self.type is ItemType.SPACE:
             return bytes([0] * bytes_per_val * self.size)
+        # Handle strings
+        elif self.type is ItemType.STRING:
+            if isinstance(self.content, list):
+                raise ValueError("Only single strings are supported.")
+            return bytes(self.content, 'ascii') + b'\x00'
 
         # Handle list
         if isinstance(self.content, list):
@@ -116,6 +120,27 @@ class MemoryItem:
             return bytes(byte_ls)
         else:
             return self.content.to_bytes(bytes_per_val, 'little')
+    
+    def initialize(self, init):
+        for i in init:
+            if i['type'] == 'memory_i32':
+                # %s replaced with number of integers expected                
+                # # < means little-endian                
+                data = pack('<%si' % len(i['data']), *i['data'])
+                # assumes address in JSON is in hexadecimal string form                
+                self._mu.mem_write(int(i['address'], 16), data)
+            elif i['type'] == 'memory_i8':
+                # %s replaced with number of integers expected                
+                # < means little-endian                
+                data = pack('<%sb' % len(i['data']), *i['data'])
+                # assumes address in JSON is in hexadecimal string form                s
+                self._mu.mem_write(int(i['address'], 16), data)
+            elif i['type'] == 'memory_string':
+                # %s replaced with number of integers expected                
+                # < means little-endian               
+                data = bytes(i['string'], 'ascii') + b'\x00'                
+                # assumes address in JSON is in hexadecimal string form                
+                self._mu.mem_write(int(i['address'], 16), data)
 
 
 class MemoryPage:
@@ -257,13 +282,4 @@ class Memory:
             raise Exception("Error reading from memory: %s" % str(e))
 
 
-# Small test
-# mu = Uc(UC_ARCH_ARM, UC_MODE_THUMB) 
-# mem = Memory(mu=mu)
 
-# item = MemoryItem("label",  ItemType.WORD, MemoryType.RW, size=2, content=[1,2])
-# print(item)
-# mem.add_item(item)
-# print(mem.find_item(item.label))
-# test = mem.read_item(item.label)
-# print(test)

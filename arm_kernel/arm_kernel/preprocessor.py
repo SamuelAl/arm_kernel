@@ -125,6 +125,8 @@ class Preprocessor:
                 return ItemType.BYTE
             case 'int':
                 return ItemType.INT
+            case ('ascii' | 'string'):
+                return ItemType.STRING
             case _ :
                 raise ValueError(f"Invalid item type {val}.")
 
