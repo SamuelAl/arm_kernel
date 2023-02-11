@@ -33,5 +33,5 @@ def test_emulator():
     state = emu.execute_code(TEST_CODE_LABEL)
     state = emu.execute_code(TEST_CODE_LABEL)
     r0 = select_registers(state.registers, ['r0'])[0]
-    assert hex(r0.val) == 0 
+    assert hex(r0.val) == "0x580000" 
 

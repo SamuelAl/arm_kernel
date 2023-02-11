@@ -152,8 +152,26 @@ class View:
                 return self._padhexa(hex(val), size)
             case "bin":
                 return bin(val)
+            case "char":
+                if 0 <= val <= 255:
+                    return self._escape(chr(val))
+                else:
+                    return "NA"
             case _:
                 return str(val)
+    
+    # ref: https://stackoverflow.com/questions/13927889/show-non-printable-characters-in-a-string
+    @staticmethod
+    def _escape(c):
+        if c.isprintable():
+            return c
+        c = ord(c)
+        if c <= 0xff:
+            return r'\x{0:02x}'.format(c)
+        elif c <= '\uffff':
+            return r'\u{0:04x}'.format(c)
+        else:
+            return r'\U{0:08x}'.format(c)
 
     @staticmethod
     def _padhexa(s: str, size: int):
