@@ -25,7 +25,7 @@ MOV R0, R1
 """
 
 show_re = re.compile(r"^>>>\s+show\s+(?P<view>[a-zA-Z]+)(\[(?P<context>[a-zA-Z0-9,\-:]*)\])?(\s+as\s+(?P<format>[a-z]+))?")
-decimal_imm_re = re.compile(r'#\d\d+')
+decimal_imm_re = re.compile(r'(?:#|=)\d\d+')
 
 class BlockType(Enum):
     INVALID = 0
@@ -146,8 +146,9 @@ class Preprocessor:
     def hexify_immediate_values(line: str) -> str:
         values = decimal_imm_re.findall(line)
         for value in values:
+            if len(value) < 3: continue
             dec_val = int(value[1:])
-            hex_val = '#' + hex(dec_val)
+            hex_val = value[0] + hex(dec_val)
             line = line.replace(value, hex_val)
         return line
 

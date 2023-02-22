@@ -8,6 +8,8 @@ def test_hexify_immediate_values():
         TestCase("mov r0, #1", "mov r0, #1"),
         TestCase("mov r0, #10", "mov r0, #0xa"),
         TestCase("mov r0, #26", f"mov r0, #{hex(26)}"),
+        TestCase("ldr r0, =26", f"ldr r0, ={hex(26)}"),
+        TestCase("ldr r0, =1", f"ldr r0, =1"),
     ]
     for test in tests:
         got = Preprocessor.hexify_immediate_values(test.input)
