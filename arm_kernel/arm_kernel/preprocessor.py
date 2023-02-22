@@ -25,7 +25,7 @@ MOV R0, R1
 """
 
 show_re = re.compile(r"^>>>\s+show\s+(?P<view>[a-zA-Z]+)(\[(?P<context>[a-zA-Z0-9,\-:]*)\])?(\s+as\s+(?P<format>[a-z]+))?")
-decimal_imm_re = re.compile(r'(?:#|=)\d\d+')
+decimal_imm_re = re.compile(r'(?:#|=)\d\d+(?![a-zA-Z])')
 
 class BlockType(Enum):
     INVALID = 0
