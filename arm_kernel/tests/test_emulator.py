@@ -29,9 +29,9 @@ def test_emulator():
     emu = Emulator()
     view = View()
     item = MemoryItem("test", ItemType.WORD, MemoryType.RO, 3, [1,2,3])
-    emu.mem.add_item(item)
+    emu.add_memory_item(item)
     state = emu.execute_code(TEST_CODE_LABEL)
-    state = emu.execute_code(TEST_CODE_LABEL)
+    #state = emu.execute_code(TEST_CODE_LABEL)
     r0 = select_registers(state.registers, ['r0'])[0]
     assert hex(r0.val) == "0x580000" 
 

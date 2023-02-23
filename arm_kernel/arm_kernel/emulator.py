@@ -59,7 +59,7 @@ class Emulator:
 
         # Setup hooks:
         # tracing one instruction with customized callback
-        self.emu.hook_add(UC_HOOK_CODE, hook_code, begin=self.mem.codepad_address)
+        # self.emu.hook_add(UC_HOOK_CODE, hook_code, begin=self.mem.codepad_address)
 
         # Setup registers.
         self.registers = registers.get_registers(self.emu)
@@ -142,3 +142,11 @@ class Emulator:
     
     def add_memory_item(self, item: MemoryItem):
         self.mem.add_item(item)
+        self._init_ldr(item.label)
+
+    def _init_ldr(self, label: str):
+        """This resolves first LDR unicorn bug."""
+        r0_val = self.emu.reg_read(UC_ARM_REG_R0)
+        code = f"""LDR R0, ={label}"""
+        self.execute_code(code)
+        self.emu.reg_write(UC_ARM_REG_R0, r0_val)

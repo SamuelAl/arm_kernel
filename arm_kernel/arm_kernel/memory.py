@@ -120,28 +120,6 @@ class MemoryItem:
             return bytes(byte_ls)
         else:
             return self.content.to_bytes(bytes_per_val, 'little')
-    
-    def initialize(self, init):
-        for i in init:
-            if i['type'] == 'memory_i32':
-                # %s replaced with number of integers expected                
-                # # < means little-endian                
-                data = pack('<%si' % len(i['data']), *i['data'])
-                # assumes address in JSON is in hexadecimal string form                
-                self._mu.mem_write(int(i['address'], 16), data)
-            elif i['type'] == 'memory_i8':
-                # %s replaced with number of integers expected                
-                # < means little-endian                
-                data = pack('<%sb' % len(i['data']), *i['data'])
-                # assumes address in JSON is in hexadecimal string form                s
-                self._mu.mem_write(int(i['address'], 16), data)
-            elif i['type'] == 'memory_string':
-                # %s replaced with number of integers expected                
-                # < means little-endian               
-                data = bytes(i['string'], 'ascii') + b'\x00'                
-                # assumes address in JSON is in hexadecimal string form                
-                self._mu.mem_write(int(i['address'], 16), data)
-
 
 class MemoryPage:
 
@@ -210,7 +188,9 @@ class Memory:
         self._mu.mem_map(DEFAULT_RO_MEM_START, DEFAULT_RO_MEM_SZ, perms=UC_PROT_READ)
         self._memset((DEFAULT_RO_MEM_START, DEFAULT_RO_MEM_START + DEFAULT_RO_MEM_SZ - 1))
 
-        self._items = {}
+        self._items = {
+            "dummyItem": (10, 0)
+        }
 
     @property
     def codepad_address(self) -> int:
