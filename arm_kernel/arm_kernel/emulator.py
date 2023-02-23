@@ -12,8 +12,6 @@ import pynumparser
 from arm_kernel.memory import Memory, MemoryItem
 from arm_kernel import registers
 
-
-
 # callback for tracing basic blocks
 def hook_block(uc, address, size, user_data):
     print(">>> Tracing basic block at 0x%x, block size = 0x%x" %(address, size))
@@ -22,17 +20,6 @@ def hook_block(uc, address, size, user_data):
 def hook_code(uc, address, size, user_data):
     print(">>> Tracing instruction at 0x%x, instruction size = 0x%x" %(address, size))
 
-def extract_cpu_state(uc):
-    # Dictionary to hold registers.
-    registers = OrderedDict()
-
-    for register in range(13):
-        registers["r%d" % register] = uc.reg_read(UC_ARM_REG_R0 + register)
-
-    registers["r13"] = uc.reg_read(UC_ARM_REG_SP)
-    registers["r14"] = uc.reg_read(UC_ARM_REG_LR)
-    
-    return {"registers": registers} 
 
 EmulatorState = namedtuple("EmulatorState", ("registers", "memory"))
     
