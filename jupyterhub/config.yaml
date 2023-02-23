@@ -34,7 +34,6 @@ hub:
     Authenticator:
       admin_users:
         - samalarco
-        - jdukes
     # ...
     DummyAuthenticator:
       password: test1234
