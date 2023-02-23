@@ -146,7 +146,10 @@ class Emulator:
 
     def _init_ldr(self, label: str):
         """This resolves first LDR unicorn bug."""
+        # Memorize current r0 value to restore later.
         r0_val = self.emu.reg_read(UC_ARM_REG_R0)
+        # Execute dummy LDR code.
         code = f"""LDR R0, ={label}"""
         self.execute_code(code)
+        # Restore original r0 value.
         self.emu.reg_write(UC_ARM_REG_R0, r0_val)
