@@ -27,7 +27,6 @@ memory:
 
 def test_emulator_label_load():
     emu = Emulator()
-    view = View()
     item = MemoryItem("test", ItemType.WORD, MemoryType.RO, 3, [1,2,3])
     emu.add_memory_item(item)
     state = emu.execute_code(TEST_CODE_LABEL)
