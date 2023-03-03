@@ -11,10 +11,13 @@
 
 from collections import namedtuple
 from enum import Enum
+import math
 from struct import pack
 from sortedcontainers import SortedList
 from unicorn import *
 from unicorn.arm_const import *
+
+from arm_kernel.const import KB_SIZE
 
 ALIGNMENT = 4 * 1024
 
@@ -28,16 +31,16 @@ STACK_SZ = 1024*1024
 DEFAULT_BASE = 0x400000
 DEFAULT_CODEPAD_MEM_START = DEFAULT_BASE
 DEFAULT_CODEPAD_MEM_SZ = 500 * (1 << 10) #500kb
+
 DEFAULT_SUBROUTINE_MEM_START = next_aligned(DEFAULT_CODEPAD_MEM_START + DEFAULT_CODEPAD_MEM_SZ)
 DEFAULT_SUBROUTINE_MEM_SZ = 1 << 20 #1Mb
-DEFAULT_MAIN_MEM_START = next_aligned(DEFAULT_SUBROUTINE_MEM_START + DEFAULT_SUBROUTINE_MEM_SZ)
-DEFAULT_MAIN_MEM_SZ = 4 * (1 << 20) #4Mb
-DEFAULT_PAGE_SZ = 1 << 10 #1Kb
 
-DEFAULT_RW_MEM_START = DEFAULT_MAIN_MEM_START
-DEFAULT_RW_MEM_SZ = DEFAULT_PAGE_SZ
+DEFAULT_RW_MEM_START = next_aligned(DEFAULT_SUBROUTINE_MEM_START + DEFAULT_SUBROUTINE_MEM_SZ)
+DEFAULT_RW_MEM_SZ = 2 * (1 << 20) #2Mb
 DEFAULT_RO_MEM_START =  next_aligned(DEFAULT_RW_MEM_START + DEFAULT_RW_MEM_SZ)
-DEFAULT_RO_MEM_SZ = DEFAULT_PAGE_SZ
+DEFAULT_RO_MEM_SZ = 2 * (1 << 20) #2Mb
+
+DEFAULT_PAGE_SZ = 1 << 10 #1Kb
 
 class MemoryType(Enum):
     CODE = 1
@@ -151,6 +154,90 @@ class MemoryPage:
         if self.next_address >= self.start + self.capacity:
             self.is_full = True
         self.size = min(self.capacity, self.next_address - self.start)
+
+class MemoryRegion:
+    """Defines a functional memory unit (should be reserved for a specific purpose)"""
+
+    def __init__(self, mu: unicorn.Uc, start: int, end: int):
+         self.start = start
+         self.end = end
+         self._pages = SortedList(iterable=[], key=lambda x: x.start)
+         self._next_page_address = start
+         self._mu = mu
+         self._items = {}
+
+
+    def add_page(self, size: int = ALIGNMENT, type: MemoryType = MemoryType.RW) -> MemoryPage:
+        if  self._next_page_address + size - 1 > self.end:
+            raise ValueError(f"A page of size {size}b does not fit in this region")
+        
+        match(type):
+            case (MemoryType.RW | MemoryType.STACK):
+                perms = UC_PROT_ALL
+            case MemoryType.RO:
+                perms = UC_PROT_READ
+            case (MemoryType.CODE | MemoryType.SUBROUTINE):
+                perms = UC_PROT_EXEC | UC_PROT_READ
+            case _:
+                raise ValueError("Invalid memory type")
+        
+        # Map memory in Unicorn
+        try:
+            start = self._next_page_address
+            self._mu.mem_map(address=start, size=size, perms=perms)
+            self._memset(start, start + size - 1)
+        except Exception as e:
+            raise Exception(f"Error mapping memory in unicorn: {str(e)}")
+        
+        page = MemoryPage(type, self._next_page_address, size)
+        self._pages.add(page)
+        
+        # Update next address
+        self._next_page_address = next_aligned(self._next_page_address + size)
+        return page
+
+    def find_free_page(self, type: MemoryType, size: int, create: bool = True) -> MemoryPage:
+        for page in self._pages:
+            if page.type is type and page.capacity - page.size >= size:
+                return page
+        if create:
+            try:
+                page = self.add_page(ALIGNMENT * math.ceil(size/ALIGNMENT), type)
+                return page
+            except Exception as e:
+                raise Exception(f"No page with requested size found and page could not be created: {str(e)}.")
+        raise Exception(f"No page can be found with the requested size.")
+    
+    def add_item(self, item: MemoryItem):
+        # get page with space
+        page = self.find_free_page(item.access, item.byte_size)
+
+        # Add content to memory
+        addrs = page.next_address
+        try:
+            page.add_item(self._mu, item)
+        except Exception as error:
+            raise Exception(f"Error writing content to memory: {str(error)}")
+        else:
+            self._items[item.label] = (addrs, item.byte_size)
+    
+        return (addrs, item.byte_size)
+    
+    def find_item(self, label:str) -> tuple[int, int] | None:
+        return self._items.get(label)
+
+    def _memset(self, start, end, val: int = 0):
+        step = 0x2000  # 8k
+        if val:
+            data = bytes([val]) * step
+        else:
+            data = bytes(step)  # null initialized
+        for addr in range(start, end + 1, step):
+            if addr + step > end + 1:
+                data = data[:end - addr + 1]
+            self._mu.mem_write(addr, data)
+
+#= namedtuple("MemoryRegion", ("start", "end"))
         
 class Memory:
     def __init__(self, mu: unicorn.Uc):
@@ -158,89 +245,57 @@ class Memory:
 
         # Setup main memory regions map
         self._mem_regions = {
-            MemoryType.STACK: (STACK_ADDR, STACK_ADDR + STACK_SZ - 1),
-            MemoryType.CODE: (DEFAULT_CODEPAD_MEM_START, DEFAULT_CODEPAD_MEM_START + DEFAULT_CODEPAD_MEM_SZ - 1), 
-            MemoryType.SUBROUTINE: (DEFAULT_SUBROUTINE_MEM_START, DEFAULT_SUBROUTINE_MEM_START + DEFAULT_SUBROUTINE_MEM_SZ - 1),
-            MemoryType.MAIN: (DEFAULT_MAIN_MEM_START, DEFAULT_MAIN_MEM_START +  DEFAULT_MAIN_MEM_SZ - 1)
+            MemoryType.STACK: MemoryRegion(self._mu, STACK_ADDR, STACK_ADDR + STACK_SZ - 1),
+            MemoryType.CODE: MemoryRegion(self._mu, DEFAULT_CODEPAD_MEM_START, DEFAULT_CODEPAD_MEM_START + DEFAULT_CODEPAD_MEM_SZ - 1), 
+            MemoryType.SUBROUTINE: MemoryRegion(self._mu, DEFAULT_SUBROUTINE_MEM_START, DEFAULT_SUBROUTINE_MEM_START + DEFAULT_SUBROUTINE_MEM_SZ - 1),
+            MemoryType.RO: MemoryRegion(self._mu, DEFAULT_RO_MEM_START, DEFAULT_RO_MEM_START +  DEFAULT_RO_MEM_SZ - 1),
+            MemoryType.RW: MemoryRegion(self._mu, DEFAULT_RW_MEM_START, DEFAULT_RW_MEM_START +  DEFAULT_RW_MEM_SZ - 1)
         }
-
-        self._mu.mem_map(address=DEFAULT_CODEPAD_MEM_START, size=DEFAULT_CODEPAD_MEM_SZ, perms=UC_PROT_EXEC | UC_PROT_READ)
-        self._memset(self._mem_regions[MemoryType.CODE])
-        self._mu.mem_map(address=DEFAULT_SUBROUTINE_MEM_START, size=DEFAULT_SUBROUTINE_MEM_SZ, perms=UC_PROT_EXEC | UC_PROT_READ)
-        self._memset(self._mem_regions[MemoryType.SUBROUTINE])
+        
+        # Configure codepad region
+        self._mem_regions[MemoryType.CODE].add_page(DEFAULT_CODEPAD_MEM_SZ, MemoryType.CODE)
+        
+        # Configure subroutine region.
+        self._mem_regions[MemoryType.SUBROUTINE].add_page(DEFAULT_SUBROUTINE_MEM_SZ, MemoryType.SUBROUTINE)
+        
         # Configure stack
-        self._mu.mem_map(address=STACK_ADDR, size=STACK_SZ)
-        self._memset(self._mem_regions[MemoryType.STACK])
+        self._mem_regions[MemoryType.STACK].add_page(STACK_SZ, MemoryType.STACK)
         self._mu.reg_write(UC_ARM_REG_SP, STACK_ADDR + STACK_SZ)
         self._mu.reg_write(UC_ARM_REG_FP, STACK_ADDR + STACK_SZ)
 
-        # Setup pages map
-        self._rw_pages = SortedList(iterable=[
-            MemoryPage(MemoryType.RW, DEFAULT_RW_MEM_START, DEFAULT_RW_MEM_SZ)
-        ], key=lambda x: x.start)
+        # Setup main memory
+        self._mem_regions[MemoryType.RO].add_page(type=MemoryType.RO)
+        self._mem_regions[MemoryType.RW].add_page(type=MemoryType.RW)
 
-        self._ro_pages = SortedList(iterable=[
-            MemoryPage(MemoryType.RO, DEFAULT_RO_MEM_START, DEFAULT_RO_MEM_SZ)
-        ], key=lambda x: x.start)
+        # Initialize items dict
+        self._items = {}
 
-        self._mu.mem_map(DEFAULT_RW_MEM_START, DEFAULT_RW_MEM_SZ)
-        self._memset((DEFAULT_RW_MEM_START, DEFAULT_RW_MEM_START + DEFAULT_RW_MEM_SZ - 1))
-        self._mu.mem_map(DEFAULT_RO_MEM_START, DEFAULT_RO_MEM_SZ, perms=UC_PROT_READ)
-        self._memset((DEFAULT_RO_MEM_START, DEFAULT_RO_MEM_START + DEFAULT_RO_MEM_SZ - 1))
-
-        self._items = {
-            "dummyItem": (10, 0)
-        }
 
     @property
     def codepad_address(self) -> int:
-        return self._mem_regions[MemoryType.CODE][0]
+        return self._mem_regions[MemoryType.CODE].start
 
     @property
     def stack_region(self) -> tuple[int, int]:
-        return self._mem_regions[MemoryType.STACK]
+        stack_region = self._mem_regions[MemoryType.STACK]
+        return (stack_region.start, stack_region.end)
 
-    # ref: mem.py in https://book-of-gehn.github.io/articles/2021/01/09/Interactive-Assembler.html
-    def _memset(self, region: tuple[int, int], val: int = 0):
-        step = 0x2000  # 8k
-        if val:
-            data = bytes([val]) * step
-        else:
-            data = bytes(step)  # null initialized
-        for addr in range(region[0], region[1] + 1, step):
-            if addr + step > region[1] + 1:
-                data = data[:region[1] - addr + 1]
-            self._mu.mem_write(addr, data)
-
-    def _find_page(self, access: MemoryType, size: int) -> MemoryPage:
-        # Find memory list
-        list = SortedList()
-        if access is MemoryType.RO:
-            list = self._ro_pages
-        else:
-            list = self._rw_pages
-        
-        for page in list:
-            if page.capacity - page.size >= size:
-                return page
-        
-        #TODO: Create new page if no page found
-        raise Exception("No page found") # this will be substituted by the creation of a new page
+    def _find_region(self, access: MemoryType, size: int) -> MemoryRegion:
+        return self._mem_regions[access]
 
     def write_code(self, code: bytes):
-        address = self._mem_regions[MemoryType.CODE][0]
+        address = self._mem_regions[MemoryType.CODE].start
         self._mu.mem_write(address, code)  
 
     def add_item(self, item: MemoryItem):
         #TODO: Validate item.
 
         # get page with space
-        page = self._find_page(item.access, item.byte_size)
+        region = self._find_region(item.access, item.byte_size)
 
         # Add content to memory
-        addrs = page.next_address
         try:
-            page.add_item(self._mu, item)
+            addrs = region.add_item(item)[0]
         except Exception as error:
             raise Exception(f"Error writing content to memory: {str(error)}")
         else:

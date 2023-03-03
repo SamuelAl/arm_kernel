@@ -25,13 +25,13 @@ memory:
             content: [1,2,3]
 """
 
-def test_emulator():
+def test_emulator_label_load():
     emu = Emulator()
     view = View()
     item = MemoryItem("test", ItemType.WORD, MemoryType.RO, 3, [1,2,3])
     emu.add_memory_item(item)
     state = emu.execute_code(TEST_CODE_LABEL)
-    #state = emu.execute_code(TEST_CODE_LABEL)
     r0 = select_registers(state.registers, ['r0'])[0]
-    assert hex(r0.val) == "0x580000" 
+    want_address = emu.mem._mem_regions[MemoryType.RO].start
+    assert r0.val == want_address
 

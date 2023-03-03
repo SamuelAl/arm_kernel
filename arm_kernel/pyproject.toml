@@ -62,6 +62,15 @@ path = "arm_kernel/__init__.py"
 pythonpath = [
   "."
 ]
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning:unicorn",
+    "ignore::DeprecationWarning:jupyter",
+    # note the use of single quote below to denote "raw" strings in TOML
+    'ignore:function ham\(\) is deprecated:DeprecationWarning',
+]
+
 
 [tool.hatch.build.targets.sdist]
 include = [

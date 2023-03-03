@@ -4,7 +4,7 @@ from yaml.loader import SafeLoader
 from arm_kernel.memory import MemoryItem, MemoryType, ItemType
 import re
 
-CODE_1 = """__config__
+sample_config = """__config__
 memory:
     items:
         label1:
@@ -15,13 +15,6 @@ memory:
             type: byte
             content: [1,2,3,4]
             access: rw
-"""
-CODE_2 = """
-LDR R0, =test
-LDR R1, [R0]
-LDR R2, [R0, #8]
-MOV R0, R1
->>> show registers
 """
 
 show_re = re.compile(r"^>>>\s+show\s+(?P<view>[a-zA-Z]+)(\[(?P<context>[a-zA-Z0-9,\-:]*)\])?(\s+as\s+(?P<format>[a-z]+))?")
