@@ -22,7 +22,9 @@ def hook_code(uc, address, size, user_data):
     print(">>> Tracing instruction at 0x%x, instruction size = 0x%x" %(address, size))
 
 
-EmulatorState = namedtuple("EmulatorState", ("registers", "memory"))
+EmulatorState = namedtuple("EmulatorState", ("registers", "memory", "analysis"))
+
+TraceLine = namedtuple("TraceLine", ("address", "bytes", "mnemonic", "op_str"))
     
 class Emulator:
     
@@ -33,6 +35,8 @@ class Emulator:
         self.emu = Uc(UC_ARCH_ARM, UC_MODE_ARM)
         self.cs = Cs(CS_ARCH_ARM, CS_MODE_ARM)
         self.mem = Memory(self.emu)
+        
+        self.last_code = ""
 
         # Setup symbol resolution using managed memory.
         def sym_resolver(symbol, value):
@@ -92,11 +96,14 @@ class Emulator:
             instrs, count, err = None, None, e
             return (instrs, count, err)
         
-    def disassemble(self, code: bytearray | bytes | list, addrs: int = 0, count: int = 0) -> str:
+    def disassemble(self, code: bytearray | bytes | list, addrs: int = 0, count: int = 0) -> tuple[str, any]:
         res = ""
-        for i in self.cs.disasm(code, offset=addrs, count=count):
+        disasm = self.cs.disasm(code, offset=addrs, count=count)
+        rows = []
+        for i in disasm:
             res += "0x%x:\t%s\t%s\t%s\n" % (i.address, i.bytes.hex(), i.mnemonic, i.op_str)
-        return res
+            rows.append(i)
+        return (res, rows)
 
     def execute_code(self, code):
         ret = []  # ret == [instrs, None] or [None, error]
@@ -128,6 +135,13 @@ class Emulator:
         # valid assembly but not instructions there (like a comment)
         if not assembled:
             return EmulatorState(self.registers, self.mem)
+        
+        # Disassemble for disassembly view
+        try:
+            res, disasm = self.disassemble(assembled, addrs=self.mem.codepad_address, count=count)
+
+        except CsError as e:
+            raise Exception("Error disassembling")
 
         try:
             # write machine code to be emulated to memory
@@ -138,7 +152,13 @@ class Emulator:
             self.emu.ctl_remove_cache(self.mem.codepad_address, until+1)
             self.emu.emu_start(self.mem.codepad_address, until, timeout=5000000)
 
-            return EmulatorState(self.registers, self.mem)
+            self.last_code = code
+
+            analysis = {
+                "disassembly": disasm,
+                "disassembly_str": res
+            }
+            return EmulatorState(self.registers, self.mem, analysis)
 
         except UcError as e:
             raise Exception("Error executing: %s" % e)

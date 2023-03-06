@@ -7,6 +7,7 @@ import pynumparser
 from arm_kernel.templates.register import DETAILED_REGISTERS_TEMPLATE, NZCV_FLAGS_VIEW
 from arm_kernel.templates.stack import STACK_VIEW
 from arm_kernel.templates.memory import MEMORY_WORD_VIEW
+from arm_kernel.templates.disassembly import SIMPLE_DISASSEMBLY_VIEW
 from arm_kernel.emulator import EmulatorState
 from arm_kernel import registers
 from arm_kernel import memory
@@ -34,6 +35,8 @@ class View:
                 return self.generate_nzcv_flags_view(state)
             case ("mem" | "memw" | "memh" | "memb") as mem_mode:
                 return self.generate_mem_view(view_config, state, mem_mode)
+            case ("disassembly" | "disasm"):
+                return self.generate_disassembly_view(view_config, state)
     
     def generate_stack_view(self, view_config: dict, state: EmulatorState) -> str:
         template = self.env.from_string(STACK_VIEW)
@@ -117,8 +120,20 @@ class View:
             "registers": registers,
             "reg_count": len(selected)
         }
-        print(context)
         return template.render(context)
+
+    def generate_disassembly_view(self, view_config: dict, state: EmulatorState) -> str:
+        template = self.env.from_string(SIMPLE_DISASSEMBLY_VIEW)
+        rows = []
+        for i in state.analysis["disassembly"]:
+            rows.append((self._padhexa(hex(i.address)), f"0x{i.bytes.hex()}", i.mnemonic, i.op_str))
+
+        context = {
+            "disassembly": rows,
+        }
+        return template.render(context)
+        
+
 
     def select_registers(self, registers, patterns) -> list[registers.Register]:
         '''Filter the registers by name following the globs expressions.'''
@@ -174,7 +189,7 @@ class View:
             return r'\U{0:08x}'.format(c)
 
     @staticmethod
-    def _padhexa(s: str, size: int):
+    def _padhexa(s: str, size: int = 8):
         return '0x' + s[2:].zfill(size)
 
     def _get_memory_from_context(self, mem: memory.Memory, context) -> tuple[tuple[int, int], bytearray]:
