@@ -27,15 +27,15 @@ class View:
 
         match view_config["view"]:
             case "registers":
-                return self.gen_registers_view(view_config, state)
+                return self.generate_registers_view(view_config, state)
             case "stack":
-                return self.gen_stack_view(view_config, state)
+                return self.generate_stack_view(view_config, state)
             case ("nzcv" | "flags"):
-                return self.gen_nzcv_flags_view(state)
+                return self.generate_nzcv_flags_view(state)
             case ("mem" | "memw" | "memh" | "memb") as mem_mode:
-                return self.gen_mem_view(view_config, state, mem_mode)
+                return self.generate_mem_view(view_config, state, mem_mode)
     
-    def gen_stack_view(self, view_config: dict, state: EmulatorState) -> str:
+    def generate_stack_view(self, view_config: dict, state: EmulatorState) -> str:
         template = self.env.from_string(STACK_VIEW)
         sp = self.select_registers(state.registers, ["sp"])[0]
         mem = state.memory
@@ -54,7 +54,7 @@ class View:
         }
         return template.render(context)
 
-    def gen_mem_view(self, view_config: dict, state: EmulatorState, mem_mode: str = "memw") -> str:
+    def generate_mem_view(self, view_config: dict, state: EmulatorState, mem_mode: str = "memw") -> str:
         template = self.env.from_string(MEMORY_WORD_VIEW)
         mem = state.memory
 
@@ -94,7 +94,7 @@ class View:
         # <p>{str(rows)}</p>
         # """
 
-    def gen_nzcv_flags_view(self, state: EmulatorState) -> str:
+    def generate_nzcv_flags_view(self, state: EmulatorState) -> str:
         template = self.env.from_string(NZCV_FLAGS_VIEW)
         cpsr = self.select_registers(state.registers, ["cpsr"])[0]
         context = {
@@ -105,7 +105,7 @@ class View:
         }
         return template.render(context)
 
-    def gen_registers_view(self, view_config: dict, state: EmulatorState) -> str:
+    def generate_registers_view(self, view_config: dict, state: EmulatorState) -> str:
         template = self.env.from_string(DETAILED_REGISTERS_TEMPLATE)
         if "context" in view_config and view_config["context"] is not None:
             pattern = view_config["context"].split(",")
