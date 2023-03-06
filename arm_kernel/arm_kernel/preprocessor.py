@@ -17,13 +17,20 @@ memory:
             access: rw
 """
 
+sample_subroutine = """__subroutine:upr__
+upr:
+    code...
+"""
+
 show_re = re.compile(r"^>>>\s+show\s+(?P<view>[a-zA-Z]+)(\[(?P<context>[a-zA-Z0-9,\-:]*)\])?(\s+as\s+(?P<format>[a-z]+))?")
 decimal_imm_re = re.compile(r'(?:#|=)\d\d+(?![a-zA-Z])')
+subroutine_re = re.compile(r"__subroutine:(?P<label>\S+)__")
 
 class BlockType(Enum):
     INVALID = 0
     TEXT = 1
     CONFIG = 2
+    SUBROUTINE = 3
     MEM_FUNC = 4
 
 class Preprocessor:
@@ -45,10 +52,16 @@ class Preprocessor:
             case BlockType.CONFIG:
                 content = Preprocessor.parse_config(partition[1])
             case BlockType.TEXT:
-                views, cleaned_code = Preprocessor.process_code(text)
+                views, code = Preprocessor.process_code(text)
                 content = {
-                    "code": cleaned_code,
+                    "code": code,
                     "views": views
+                }
+            case BlockType.SUBROUTINE:
+                label, code = Preprocessor.process_subroutine(text)
+                content = {
+                    "label": label,
+                    "code": code,
                 }
 
         return (
@@ -59,6 +72,8 @@ class Preprocessor:
     @staticmethod
     def parse_type(line: str) -> BlockType:
         line = line.strip()
+        if subroutine_re.match(line) is not None:
+            return BlockType.SUBROUTINE
         match line:
             case "__config__":
                 return BlockType.CONFIG
@@ -160,5 +175,16 @@ class Preprocessor:
                 cleaned_code.append(line)
         
         return views, '\n'.join(cleaned_code)
+    
+    @staticmethod
+    def process_subroutine(content: str) -> tuple[str, str]:
+        partition = content.split('\n', 1)
+        heading = partition[0]
+        code = partition[1]
+        heading_match = subroutine_re.match(heading)
+        label = heading_match.groupdict()["label"]
+        _, cleaned_code = Preprocessor.process_code(code)
+        return (label, cleaned_code)
+
 
 

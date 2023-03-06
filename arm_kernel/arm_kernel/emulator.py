@@ -3,13 +3,14 @@ from collections import OrderedDict
 from keystone import *
 from unicorn import *
 from unicorn.arm_const import *
+from capstone import *
 from collections import namedtuple
 import threading
 from fnmatch import fnmatch
 import re
 import pynumparser
 
-from arm_kernel.memory import Memory, MemoryItem
+from arm_kernel.memory import ItemType, Memory, MemoryItem, MemoryType
 from arm_kernel import registers
 
 # callback for tracing basic blocks
@@ -30,6 +31,7 @@ class Emulator:
         # Initialize emulation suite.
         self.asm = Ks(KS_ARCH_ARM, KS_MODE_ARM)
         self.emu = Uc(UC_ARCH_ARM, UC_MODE_ARM)
+        self.cs = Cs(CS_ARCH_ARM, CS_MODE_ARM)
         self.mem = Memory(self.emu)
 
         # Setup symbol resolution using managed memory.
@@ -82,13 +84,27 @@ class Emulator:
 
         return selected
 
+    def assemble(self, code:str, addrs:int = 0) -> tuple[bytes | list, int, Exception | None]:
+        try:
+            instrs, count = self.asm.asm(code, addrs, as_bytes=True)
+            return (instrs, count, None)
+        except Exception as e:
+            instrs, count, err = None, None, e
+            return (instrs, count, err)
+        
+    def disassemble(self, code: bytearray | bytes | list, addrs: int = 0, count: int = 0) -> str:
+        res = ""
+        for i in self.cs.disasm(code, offset=addrs, count=count):
+            res += "0x%x:\t%s\t%s\t%s\n" % (i.address, i.bytes.hex(), i.mnemonic, i.op_str)
+        return res
+
     def execute_code(self, code):
         ret = []  # ret == [instrs, None] or [None, error]
 
         def parse_assembly():
             err = None
             try:
-                instrs, count = self.asm.asm(code, as_bytes=True)
+                instrs, count = self.asm.asm(code, addr=self.mem.codepad_address, as_bytes=True)
                 ret.extend((instrs, count, None))
             except Exception as e:
                 instrs, count, err = None, None, e
@@ -120,7 +136,7 @@ class Emulator:
             # emulate machine code
             until = self.mem.codepad_address + len(assembled)
             self.emu.ctl_remove_cache(self.mem.codepad_address, until+1)
-            self.emu.emu_start(self.mem.codepad_address, self.mem.codepad_address + len(assembled), timeout=5000000)
+            self.emu.emu_start(self.mem.codepad_address, until, timeout=5000000)
 
             return EmulatorState(self.registers, self.mem)
 
@@ -129,7 +145,19 @@ class Emulator:
     
     def add_memory_item(self, item: MemoryItem):
         self.mem.add_item(item)
-        self._init_ldr(item.label)
+        try:
+            self._init_ldr(item.label)
+        except:
+            pass
+
+    def add_subroutine(self, label, subroutine):
+        """Assembles and adds a subroutine to the subroutine memory region."""
+        subroutine_addrs = self.mem.subroutine_region.start
+        encoded, count, err = self.assemble(subroutine, subroutine_addrs)
+        if err is not None:
+            raise Exception(f"Error assembling subroutine: {err}")
+        item = MemoryItem(label, ItemType.RAW, MemoryType.SUBROUTINE, content=encoded)
+        return self.add_memory_item(item)
 
     def _init_ldr(self, label: str):
         """This resolves first LDR unicorn bug."""

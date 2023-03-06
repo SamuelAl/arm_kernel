@@ -21,8 +21,6 @@ class ArmKernel(Kernel):
     banner = "ARM Assembly - code an ARM CPU"
     
     view = View()
-
-    
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -55,7 +53,16 @@ class ArmKernel(Kernel):
             'data': {'text/html': f"<p>-- kernel configured successfully --</p>"}
             }
         self.send_response(self.iopub_socket, 'display_data', stream_content)
-        
+    
+    def _handle_subroutine(self, subroutine: dict):
+        label = subroutine["label"]
+        self.emulator.add_subroutine(label, subroutine["code"])
+        stream_content = {
+            'metadata': {},
+            'data': {'text/html': f"<p>-- subroutine {label} registered successfully --</p>"}
+            }
+        self.send_response(self.iopub_socket, 'display_data', stream_content)
+
 
     def do_execute(self, code, silent, store_history=True, user_expressions=None, allow_stdin=False):
         if silent:
@@ -70,6 +77,8 @@ class ArmKernel(Kernel):
                     self._execute_code(parsed_block[1])
                 case BlockType.CONFIG:
                     self._handle_config(parsed_block[1])
+                case BlockType.SUBROUTINE:
+                    self._handle_subroutine(parsed_block[1])
 
         except Exception as e:
                 self.report_error(e)

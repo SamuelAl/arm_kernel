@@ -25,20 +25,21 @@ def next_aligned(n: int, alignment: int = ALIGNMENT) -> int:
     return (n + alignment) & -(alignment-1)
 
 STACK_ADDR = 0x0
-STACK_SZ = 1024*1024
+STACK_SZ = 4 * KB_SIZE
 
 # Default profile
-DEFAULT_BASE = 0x400000
-DEFAULT_CODEPAD_MEM_START = DEFAULT_BASE
-DEFAULT_CODEPAD_MEM_SZ = 500 * (1 << 10) #500kb
+DEFAULT_BASE = 0x4000
 
-DEFAULT_SUBROUTINE_MEM_START = next_aligned(DEFAULT_CODEPAD_MEM_START + DEFAULT_CODEPAD_MEM_SZ)
+DEFAULT_SUBROUTINE_MEM_START = DEFAULT_BASE
 DEFAULT_SUBROUTINE_MEM_SZ = 1 << 20 #1Mb
 
 DEFAULT_RW_MEM_START = next_aligned(DEFAULT_SUBROUTINE_MEM_START + DEFAULT_SUBROUTINE_MEM_SZ)
 DEFAULT_RW_MEM_SZ = 2 * (1 << 20) #2Mb
 DEFAULT_RO_MEM_START =  next_aligned(DEFAULT_RW_MEM_START + DEFAULT_RW_MEM_SZ)
 DEFAULT_RO_MEM_SZ = 2 * (1 << 20) #2Mb
+
+DEFAULT_CODEPAD_MEM_START = next_aligned(DEFAULT_RO_MEM_START + DEFAULT_RO_MEM_SZ)
+DEFAULT_CODEPAD_MEM_SZ = 500 * (1 << 10) #500kb
 
 DEFAULT_PAGE_SZ = 1 << 10 #1Kb
 
@@ -56,6 +57,7 @@ class ItemType(Enum):
     WORD = 4
     INT = 10
     STRING = 20
+    RAW = 21
     SPACE = 0
 
 ITEM_BYTE_SZ = {
@@ -64,7 +66,8 @@ ITEM_BYTE_SZ = {
     ItemType.WORD: 4,
     ItemType.INT: 4,
     ItemType.STRING: 1,
-    ItemType.SPACE: 1
+    ItemType.SPACE: 1,
+    ItemType.RAW: 1,
 }
 
 # Item: Tuple("label", type, access, size, content)
@@ -84,8 +87,11 @@ class MemoryItem:
     def calculate_bytes_count(self):
         byte_count = self._type_bytes(self.type)
 
+        if self.type is ItemType.RAW:
+            return len(self.content)
+
         # Handle strings
-        if self.type is ItemType.STRING:
+        elif self.type is ItemType.STRING:
             if isinstance(self.content, list):
                 raise ValueError("Only strings must be single, not lists.")
             return len(self.content) + 1 # null terminate
@@ -104,8 +110,11 @@ class MemoryItem:
     def to_bytes(self):
         bytes_per_val = self._type_bytes(self.type)
 
+        if self.type is ItemType.RAW:
+            return self.content
+
         # Handle space
-        if self.type is ItemType.SPACE:
+        elif self.type is ItemType.SPACE:
             return bytes([0] * bytes_per_val * self.size)
         # Handle strings
         elif self.type is ItemType.STRING:
@@ -114,7 +123,7 @@ class MemoryItem:
             return bytes(self.content, 'ascii') + b'\x00'
 
         # Handle list
-        if isinstance(self.content, list):
+        elif isinstance(self.content, list):
             byte_ls = []
             for val in self.content:
                 words = val.to_bytes(bytes_per_val, 'little')
@@ -248,8 +257,8 @@ class Memory:
             MemoryType.STACK: MemoryRegion(self._mu, STACK_ADDR, STACK_ADDR + STACK_SZ - 1),
             MemoryType.CODE: MemoryRegion(self._mu, DEFAULT_CODEPAD_MEM_START, DEFAULT_CODEPAD_MEM_START + DEFAULT_CODEPAD_MEM_SZ - 1), 
             MemoryType.SUBROUTINE: MemoryRegion(self._mu, DEFAULT_SUBROUTINE_MEM_START, DEFAULT_SUBROUTINE_MEM_START + DEFAULT_SUBROUTINE_MEM_SZ - 1),
+            MemoryType.RW: MemoryRegion(self._mu, DEFAULT_RW_MEM_START, DEFAULT_RW_MEM_START +  DEFAULT_RW_MEM_SZ - 1),
             MemoryType.RO: MemoryRegion(self._mu, DEFAULT_RO_MEM_START, DEFAULT_RO_MEM_START +  DEFAULT_RO_MEM_SZ - 1),
-            MemoryType.RW: MemoryRegion(self._mu, DEFAULT_RW_MEM_START, DEFAULT_RW_MEM_START +  DEFAULT_RW_MEM_SZ - 1)
         }
         
         # Configure codepad region
@@ -279,6 +288,10 @@ class Memory:
     def stack_region(self) -> tuple[int, int]:
         stack_region = self._mem_regions[MemoryType.STACK]
         return (stack_region.start, stack_region.end)
+    
+    @property
+    def subroutine_region(self) -> MemoryRegion:
+        return self._mem_regions[MemoryType.SUBROUTINE]
 
     def _find_region(self, access: MemoryType, size: int) -> MemoryRegion:
         return self._mem_regions[access]
@@ -300,6 +313,7 @@ class Memory:
             raise Exception(f"Error writing content to memory: {str(error)}")
         else:
             self._items[item.label] = (addrs, item.byte_size)
+            return (addrs, item.byte_size)
     
     def read_item(self, label: str) -> bytearray:
         item = self._items[label]

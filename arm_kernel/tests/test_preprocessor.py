@@ -17,3 +17,11 @@ def test_hexify_immediate_values():
     for test in tests:
         got = Preprocessor.hexify_immediate_values(test.input)
         assert got == test.want
+
+def test_process_subroutine():
+    TEXT = """__subroutine:uprcase__
+    uprcase:
+        mov r0, #0
+    """
+    res = Preprocessor.process_subroutine(TEXT)
+    assert res[0] == "uprcase"
