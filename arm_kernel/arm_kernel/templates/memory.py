@@ -1,6 +1,6 @@
 MEMORY_WORD_VIEW = """
 <h4>Memory:</h4>
-<table>
+<table style='font-family:"Courier New", Courier, monospace;'>
 <tr>
     <th>Address</th>
     <th>Content</th>

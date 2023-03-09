@@ -1,6 +1,6 @@
 STACK_VIEW = """
 <h4>Stack:</h4>
-<table>
+<table style='font-family:"Courier New", Courier, monospace;'>
 <tr>
     <th>Address</th>
     <th>Content</th>

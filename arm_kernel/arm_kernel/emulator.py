@@ -134,7 +134,7 @@ class Emulator:
 
         # valid assembly but not instructions there (like a comment)
         if not assembled:
-            return EmulatorState(self.registers, self.mem)
+            return EmulatorState(self.registers, self.mem, {})
         
         # Disassemble for disassembly view
         try:

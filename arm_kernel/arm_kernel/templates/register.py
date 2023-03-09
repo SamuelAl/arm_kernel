@@ -7,7 +7,7 @@ DETAILED_REGISTERS_TEMPLATE = """
     }
 </style>
 <h4>Registers:</h4>
-<table>
+<table style='font-family:"Courier New", Courier, monospace;'>
     {% for reg in registers %}
     <tr>
         <td class="t-cell"><strong>{{reg[0]}}:</strong></td>
@@ -19,7 +19,7 @@ DETAILED_REGISTERS_TEMPLATE = """
 
 NZCV_FLAGS_VIEW = """
 <h4>NZCV Flags</h4>
-<table>
+<table style='font-family:"Courier New", Courier, monospace;'>
 <tr>
     <th>N</th><th>Z</th><th>C</th><th>V</th>
 </tr>
