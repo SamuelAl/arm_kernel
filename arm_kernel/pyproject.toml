@@ -11,6 +11,7 @@ requires = [
   "PyYAML>=6.0",
   "sortedcontainers>=2.4.0",
   "unicorn",
+  "capstone",
   "cmake",
 ]
 build-backend = "hatchling.build"
@@ -44,6 +45,7 @@ dependencies = [
   "PyYAML>=6.0",
   "sortedcontainers>=2.4.0",
   "unicorn==2.0.1.post1",
+  "capstone",
 ]
 dynamic = ["version"]
 
