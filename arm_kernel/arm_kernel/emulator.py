@@ -105,9 +105,11 @@ class Emulator:
             rows.append(i)
         return (res, rows)
 
+    
     def execute_code(self, code):
         ret = []  # ret == [instrs, None] or [None, error]
 
+        # ref: https://book-of-gehn.github.io/articles/2021/01/09/Interactive-Assembler.html 
         def parse_assembly():
             err = None
             try:
